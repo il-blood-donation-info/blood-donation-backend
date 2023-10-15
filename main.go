@@ -6,6 +6,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -38,6 +39,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	strictBloodInfoServer := bloodinfo.NewStrictBloodInfoServer(db)
+	h := bloodinfo.Handler(strictBloodInfoServer, nil)
+
 	log.Println("Server is running on port 8080")
-	// log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(":8080", h))
 }
