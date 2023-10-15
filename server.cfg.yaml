@@ -1,0 +1,8 @@
+package: bloodinfo
+output: bloodinfo/bloodinfo.gen.go
+generate:
+  embedded-spec: true
+  strict-server: true
+  models: true
+  chi-server: true
+
