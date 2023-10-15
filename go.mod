@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/getkin/kin-openapi v0.120.0
 	github.com/go-chi/chi/v5 v5.0.10
-	github.com/gorilla/mux v1.8.0
 	github.com/oapi-codegen/runtime v1.0.0
 	gorm.io/driver/postgres v1.5.3
 	gorm.io/gorm v1.25.5
