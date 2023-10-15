@@ -14,12 +14,13 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
-	openapi_types "github.com/oapi-codegen/runtime/types"
+	"gorm.io/gorm"
 )
 
 // Defines values for UserRole.
@@ -35,27 +36,24 @@ type ApiError struct {
 
 // Station defines model for Station.
 type Station struct {
-	Address   string             `json:"address"`
-	CloseTime openapi_types.Date `json:"close_time"`
-
-	// DeletedAt swagger:ignore
-	DeletedAt interface{}        `json:"deleted_at"`
-	Id        int64              `gorm:"primaryKey" json:"id"`
-	IsOpen    bool               `json:"is_open"`
-	OpenTime  openapi_types.Date `json:"open_time"`
+	Address   string         `json:"address"`
+	CloseTime time.Time      `json:"close_time"`
+	DeletedAt gorm.DeletedAt `gorm:"type:timestamp with time zone;index" json:"-"`
+	Id        int64          `gorm:"primaryKey" json:"id"`
+	IsOpen    bool           `json:"is_open"`
+	OpenTime  time.Time      `json:"open_time"`
 }
 
 // User defines model for User.
 type User struct {
-	// DeletedAt swagger:ignore
-	DeletedAt   interface{} `json:"deleted_at"`
-	Description string      `json:"description"`
-	Email       string      `json:"email"`
-	FirstName   string      `json:"first_name"`
-	Id          int64       `gorm:"primaryKey" json:"id"`
-	LastName    string      `json:"last_name"`
-	Phone       string      `json:"phone"`
-	Role        UserRole    `json:"role"`
+	DeletedAt   gorm.DeletedAt `gorm:"type:timestamp with time zone;index" json:"-"`
+	Description string         `json:"description"`
+	Email       string         `json:"email"`
+	FirstName   string         `json:"first_name"`
+	Id          int64          `gorm:"primaryKey" json:"id"`
+	LastName    string         `json:"last_name"`
+	Phone       string         `json:"phone"`
+	Role        UserRole       `json:"role"`
 }
 
 // UserRole defines model for User.Role.
@@ -82,8 +80,8 @@ type ServerInterface interface {
 	// (GET /stations)
 	GetStations(w http.ResponseWriter, r *http.Request)
 	// Update station
-	// (PUT /stations/{stationId})
-	UpdateStation(w http.ResponseWriter, r *http.Request, stationId int64)
+	// (PUT /stations/{id})
+	UpdateStation(w http.ResponseWriter, r *http.Request, id int64)
 	// Get all users
 	// (GET /users)
 	GetUsers(w http.ResponseWriter, r *http.Request)
@@ -109,8 +107,8 @@ func (_ Unimplemented) GetStations(w http.ResponseWriter, r *http.Request) {
 }
 
 // Update station
-// (PUT /stations/{stationId})
-func (_ Unimplemented) UpdateStation(w http.ResponseWriter, r *http.Request, stationId int64) {
+// (PUT /stations/{id})
+func (_ Unimplemented) UpdateStation(w http.ResponseWriter, r *http.Request, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -168,17 +166,17 @@ func (siw *ServerInterfaceWrapper) UpdateStation(w http.ResponseWriter, r *http.
 
 	var err error
 
-	// ------------- Path parameter "stationId" -------------
-	var stationId int64
+	// ------------- Path parameter "id" -------------
+	var id int64
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "stationId", runtime.ParamLocationPath, chi.URLParam(r, "stationId"), &stationId)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "stationId", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
 		return
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UpdateStation(w, r, stationId)
+		siw.Handler.UpdateStation(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -387,7 +385,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/stations", wrapper.GetStations)
 	})
 	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/stations/{stationId}", wrapper.UpdateStation)
+		r.Put(options.BaseURL+"/stations/{id}", wrapper.UpdateStation)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/users", wrapper.GetUsers)
@@ -422,8 +420,8 @@ func (response GetStations200JSONResponse) VisitGetStationsResponse(w http.Respo
 }
 
 type UpdateStationRequestObject struct {
-	StationId int64 `json:"stationId"`
-	Body      *UpdateStationJSONRequestBody
+	Id   int64 `json:"id"`
+	Body *UpdateStationJSONRequestBody
 }
 
 type UpdateStationResponseObject interface {
@@ -647,7 +645,7 @@ type StrictServerInterface interface {
 	// (GET /stations)
 	GetStations(ctx context.Context, request GetStationsRequestObject) (GetStationsResponseObject, error)
 	// Update station
-	// (PUT /stations/{stationId})
+	// (PUT /stations/{id})
 	UpdateStation(ctx context.Context, request UpdateStationRequestObject) (UpdateStationResponseObject, error)
 	// Get all users
 	// (GET /users)
@@ -717,10 +715,10 @@ func (sh *strictHandler) GetStations(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateStation operation middleware
-func (sh *strictHandler) UpdateStation(w http.ResponseWriter, r *http.Request, stationId int64) {
+func (sh *strictHandler) UpdateStation(w http.ResponseWriter, r *http.Request, id int64) {
 	var request UpdateStationRequestObject
 
-	request.StationId = stationId
+	request.Id = id
 
 	var body UpdateStationJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -866,24 +864,24 @@ func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, id i
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"TwAAAP//xmqO1tkVAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

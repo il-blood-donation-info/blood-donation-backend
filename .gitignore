@@ -4,6 +4,7 @@
 # Compiled Go programs and executables
 *.exe
 *.out
+blood-donation-backend
 
 # Build directories
 /bin

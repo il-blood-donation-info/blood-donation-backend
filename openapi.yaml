@@ -31,7 +31,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/Station"
 
-  /stations/{stationId}:
+  /stations/{id}:
     put:
       summary: Update station
       description: Update station
@@ -39,7 +39,7 @@ paths:
       tags:
         - station
       parameters:
-        - name: stationId
+        - name: id
           in: path
           required: true
           schema:
@@ -274,9 +274,10 @@ components:
         description:
           type: string
         deleted_at:
-          description: swagger:ignore
-          x-go-custom-tag: gorm:"type:timestamp with time zone;index"
-          x-nullable: false
+          x-go-type: "gorm.DeletedAt"
+          x-go-json-ignore: true
+          x-oapi-codegen-extra-tags:
+            gorm: "type:timestamp with time zone;index"
 
     Station:
       type: object
@@ -297,16 +298,17 @@ components:
           type: string
         open_time:
           type: string
-          format: date
+          format: date-time
         close_time:
           type: string
-          format: date
+          format: date-time
         is_open:
           type: boolean
         deleted_at:
-          description: swagger:ignore
-          x-go-custom-tag: gorm:"type:timestamp with time zone;index"
-          x-nullable: false
+          x-go-type: "gorm.DeletedAt"
+          x-go-json-ignore: true
+          x-oapi-codegen-extra-tags:
+            gorm: "type:timestamp with time zone;index"
 
     ApiError:
       type: object
