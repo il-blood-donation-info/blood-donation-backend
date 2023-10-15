@@ -2,6 +2,7 @@ package bloodinfo
 
 import (
 	"context"
+	"fmt"
 	"gorm.io/gorm"
 )
 
@@ -16,7 +17,14 @@ func NewStrictBloodInfoServer(db *gorm.DB) StrictBloodInfoServer {
 
 // GetStations gets all stations
 func (s StrictBloodInfoServer) GetStations(ctx context.Context, request GetStationsRequestObject) (GetStationsResponseObject, error) {
-	panic("implement me")
+	var stations []Station
+	tx := s.db.Find(&stations)
+	if tx.Error != nil {
+		return GetStations500JSONResponse{
+			Message: fmt.Sprintf("error getting stations: %w", tx.Error),
+		}, nil
+	}
+	return GetStations200JSONResponse(stations), nil
 }
 
 // UpdateStation updates station

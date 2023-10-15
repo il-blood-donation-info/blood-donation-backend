@@ -3,9 +3,12 @@ package main
 import (
 	"blood-donation-backend/bloodinfo"
 	"fmt"
+	"github.com/go-chi/chi/v5"
+	middleware "github.com/oapi-codegen/nethttp-middleware"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
+	"net"
 	"net/http"
 	"os"
 )
@@ -39,9 +42,22 @@ func main() {
 		log.Fatal(err)
 	}
 
-	strictBloodInfoServer := bloodinfo.NewStrictBloodInfoServer(db)
-	h := bloodinfo.Handler(strictBloodInfoServer, nil)
+	swagger, err := bloodinfo.GetSwagger()
+	if err != nil {
+		log.Fatalf("Error loading swagger spec\n: %s", err)
+	}
+	swagger.Servers = nil
 
+	strictBloodInfoServer := bloodinfo.NewStrictBloodInfoServer(db)
+	strictHandler := bloodinfo.NewStrictHandler(strictBloodInfoServer, nil)
+
+	r := chi.NewRouter()
+	r.Use(middleware.OapiRequestValidator(swagger))
+	bloodinfo.HandlerFromMux(strictHandler, r)
+	s := &http.Server{
+		Handler: r,
+		Addr:    net.JoinHostPort("0.0.0.0", "8080"),
+	}
 	log.Println("Server is running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", h))
+	log.Fatal(s.ListenAndServe())
 }

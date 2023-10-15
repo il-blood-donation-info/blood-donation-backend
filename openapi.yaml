@@ -30,6 +30,18 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Station"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /stations/{id}:
     put:
@@ -283,6 +295,7 @@ components:
       type: object
       required:
         - id
+        - name
         - address
         - open_time
         - close_time
@@ -294,6 +307,8 @@ components:
           format: int64
           x-oapi-codegen-extra-tags:
             gorm: "primaryKey"
+        name:
+          type: string
         address:
           type: string
         open_time:
