@@ -41,6 +41,7 @@ type Station struct {
 	DeletedAt gorm.DeletedAt `gorm:"type:timestamp with time zone;index" json:"-"`
 	Id        int64          `gorm:"primaryKey" json:"id"`
 	IsOpen    bool           `json:"is_open"`
+	Name      string         `json:"name"`
 	OpenTime  time.Time      `json:"open_time"`
 }
 
@@ -85,13 +86,13 @@ type ServerInterface interface {
 	// Get all users
 	// (GET /users)
 	GetUsers(w http.ResponseWriter, r *http.Request)
-	// Create user.go
+	// Create user
 	// (POST /users)
 	CreateUser(w http.ResponseWriter, r *http.Request)
-	// Delete user.go
+	// Delete user
 	// (DELETE /users/{id})
 	DeleteUser(w http.ResponseWriter, r *http.Request, id int)
-	// Update user.go
+	// Update user
 	// (PUT /users/{id})
 	UpdateUser(w http.ResponseWriter, r *http.Request, id int64)
 }
@@ -118,19 +119,19 @@ func (_ Unimplemented) GetUsers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Create user.go
+// Create user
 // (POST /users)
 func (_ Unimplemented) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Delete user.go
+// Delete user
 // (DELETE /users/{id})
 func (_ Unimplemented) DeleteUser(w http.ResponseWriter, r *http.Request, id int) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Update user.go
+// Update user
 // (PUT /users/{id})
 func (_ Unimplemented) UpdateUser(w http.ResponseWriter, r *http.Request, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -419,6 +420,24 @@ func (response GetStations200JSONResponse) VisitGetStationsResponse(w http.Respo
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetStations401JSONResponse ApiError
+
+func (response GetStations401JSONResponse) VisitGetStationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStations500JSONResponse ApiError
+
+func (response GetStations500JSONResponse) VisitGetStationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type UpdateStationRequestObject struct {
 	Id   int64 `json:"id"`
 	Body *UpdateStationJSONRequestBody
@@ -650,13 +669,13 @@ type StrictServerInterface interface {
 	// Get all users
 	// (GET /users)
 	GetUsers(ctx context.Context, request GetUsersRequestObject) (GetUsersResponseObject, error)
-	// Create user.go
+	// Create user
 	// (POST /users)
 	CreateUser(ctx context.Context, request CreateUserRequestObject) (CreateUserResponseObject, error)
-	// Delete user.go
+	// Delete user
 	// (DELETE /users/{id})
 	DeleteUser(ctx context.Context, request DeleteUserRequestObject) (DeleteUserResponseObject, error)
-	// Update user.go
+	// Update user
 	// (PUT /users/{id})
 	UpdateUser(ctx context.Context, request UpdateUserRequestObject) (UpdateUserResponseObject, error)
 }
@@ -864,24 +883,24 @@ func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, id i
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+RX32/bNhD+VwRuwF7kH1nSodOe3GUdgm5NsSBPRRAw5llmIfE48pTEDfS/DyQl2bKY",
-	"OO1qb0CeLOvueMf7vvtIPbA5lhoVKLIse2B2voSS+8eZlr8Zg8Y9a4MaDEnwlhKs5Tm4R1ppYBmzZKTK",
-	"WV2nzMDflTQgWPaxc7xKW0e8+QRzYnXKLoiTRDVcnQthwNrI6imbF2jhmmTpky/QlJxYxgQnGPm36TBG",
-	"QAEE4tp5PrD7UY6jTxbVSOYKDbCMTAVpeN/E5mjK8WkImxFzRuRajuYoIAc1gnsyfEQ890U6b5b5vJmr",
-	"wRIvdXInaZm4v8lnVPCLVALufX+k6JUuFf10si5bKoIczDNzaiNLblbvYBWWtteoQW107gaxAK5cG5zl",
-	"izq3haUULO2w2Vyuh8q6iF7jYwS4tBDh1v8MLQF2bqRumTogF5RcFlHLQhpL14qXEDXvkQYFfyqxXqKK",
-	"WwwW3gCqKh3iM1FKh+NfoNEQmA0Un+KIX6a3/82S2pa1hfRbvIM0nuRqgYEoG8iw2YezZIEmKbniuVR5",
-	"clMgikSg8iqT2KA2NuFKJJUFY8eu25Lcltkb73zaOs8+nLGU3YKxYfGj8XQ8bWeIa8kydjyejo/dJjgt",
-	"PRSTNoPHBWhY4u9ACS+KrpQwRMb/ORPB4WJtM2A1Khum4sfp1P3MUREovzbXupBz7z1xA7IWb/ckCUof",
-	"+L2BBcvYd5O1zE8ajZ+0Clx3febG8FVoc7/283cea1uVjmjxzQRSfmTNK3blIrq2TB6kqP24V5HeXGon",
-	"RO1qg84E80Vn1dzwEgiMS7i9VuOWnJ06NXJvHEgsZWEkGpJ2rA2Csm7drpGs66sQDpbeoFh9ES59rZP2",
-	"vJHr/g7ew51vRWU9p5uu/GATx7/Gsi6s0/itYdzIFZ+kfg/qf0m5ZzEtzqyUnXzDZN29JZLNG8Yh49FB",
-	"Ml4qXtESjfwMokl8fJDEb9HcSCFANVlPDpL1PVLyFivV7vXVQbL+CbREkbjks6LAu67VPx+YVa8OzOOe",
-	"Jg9ENK7I/vTbeUoFr8gRddkY9n8++QviMw+n/2agDw75I6dwC1YLuPs/zpFdufse2gjMvxpwXGkdt3EO",
-	"Zg/A1x92u7F9zil0tIecsV6Il0qiARWGLOpko7vFhWv6kFfhO+xRXgVzw6snb3HO52uvcPEb21CuIhmb",
-	"z4/xSyXDAL+opDxxhX8M+WDeN/J7vbx/Gz2b7l3PXu55OOBgRMpcAJjblnuVKVjGlkTasjrd5uIfOOdF",
-	"IuAWCtQlKEpCLEs3ArPJpHB+S7SUvZ6+njLHsib19orn7VTYhN9gRZtf0A3HbfddvjO4PfibyHab9VX9",
-	"TwAAAP//xmqO1tkVAAA=",
+	"H4sIAAAAAAAC/+xY32/bNhD+VwRuwF7kH1mSodOe3GUdgm5NsSBPhRHQ5llmIfE48pTEDfS/DyQl2bJU",
+	"O8lmb0D2FFl35B3v++47Ko9sjrlGBYosSx6ZnS8h5/5xouUvxqBxz9qgBkMSvCUHa3kK7pFWGljCLBmp",
+	"UlaWMTPwZyENCJZ8ahynce2Is88wJ1bG7Jo4SVTd3bkQBqzt2T1m8wwt3JLMffAFmpwTS5jgBAP/Nu6u",
+	"EZABgbh1no/sYZDi4LNFNZCpQgMsIVNAHN5Xa1M0+fAiLJsQc0bkWg7mKCAFNYAHMnxAPPVJOm+W+LiJ",
+	"y8ESz3V0L2kZuZ/RF1Twk1QCHnx9pGilLhX9cLZOWyqCFMwTY2ojc25W72EVtra3qEFtVG6GmAFXrgyK",
+	"59BbU7fkWSXdAlkKVu0eN9ht7tpCbZ1kC5g+gtxY6OHefwxNAXZupK6Z3Cku5FxmvZaFNJZuv4rKAWmS",
+	"8V2B9RJVv8Vg5g2gitwBPxG5dDj+ARoNgdlAcRdV/Dat82+mVJesTqRd4j2k8U2gFhiIsoEMm3y8jBZo",
+	"opwrnkqVRrMMUUQClVehyAY1shFXIiosGDt01ZbkjszeeueL2nny8ZLF7A6MDZufDMfDcd1KXEuWsNPh",
+	"eHjqDsFp6aEY1RE8LkDdFH8FiniWNamEJjL+x6UIDtdrmwGrUdnQFd+Px+7PHBWB8ntzrTM5994j1yBr",
+	"cXdPkiD3C781sGAJ+2a0HgOjagaMaoUumzpzY/gqlLmd+9V753U2PnlWFruCN9OnJ9qN4gUt0cgvIFzc",
+	"82ee/qVxa0PMbJG7jupHLXTfJ1a9YlO3osF/9ChF6XWt6CHBjXbCW+/WoUAwXzdWzQ3PgcC4gNt7VW7R",
+	"5YWTXffGsbEW66TqxqY9g3Kuq7RPe8pyGpaDpbcoVs+CoC3q0l5Vc6t9gg9w70tRWN+8VVW+s5FrtMqy",
+	"TqwZdluqsxGrXzLaNSj/Zm89qaW+3kJHpPLw32raKvDpUQK/QzOTQoCqop4dJeoHpOgdFqo+6/lRov4O",
+	"tEQRueCTLMP7ptQ/HplV50fmcUuTOyLar8h+zO8dx8GrZxbfVIbDD2J/E/5/Cj9hCtdg1YC732zqbrVo",
+	"ezD+2YAjivfaRjjYboLppWNuP6pPmT8nB4jZVwjxWunT5sEWeRqpaG5u4RukS6fwkdlPp2Cr6LTz2uZ8",
+	"Xnpn67+idfWpJ2L1YTV8rRxog9cVkB239V7Ag+3QgB/0kv7PqNf44Or1eudem4DbwuVcwdzVrCtMxhK2",
+	"JNKWlfE2C3/DOc8iAXeQoc5BURTWsnhjYTIaZc5viZaSN+M3Y+b4VcXd3vGq7gcb8RkWtPmNXLHbNv9i",
+	"2Lu4Hu3VSn/Gclr+FQAA//+B/QhLwRYAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
