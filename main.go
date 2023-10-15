@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"os"
@@ -17,8 +17,8 @@ var (
 )
 
 func main() {
-	// Connect to the PostgreSQL database
 	var err error
+
 	// Get PostgreSQL connection details from environment variables
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
@@ -27,14 +27,14 @@ func main() {
 	dbPassword := os.Getenv("DB_PASSWORD")
 
 	// Construct the connection string
-	connectionString := fmt.Sprintf("host=%s port=%s user.go=%s dbname=%s password=%s sslmode=disable", dbHost, dbPort, dbUser, dbName, dbPassword)
+	connectionString := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbHost, dbPort, dbUser, dbName, dbPassword)
 
 	// Connect to the PostgreSQL database
-	db, err = gorm.Open("postgres", connectionString)
+	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
+
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
 
 	// AutoMigrate will create the tables based on the struct definitions
 	db.AutoMigrate(&bloodinfo.User{})
