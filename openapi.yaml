@@ -10,7 +10,7 @@ servers:
 tags:
   - name: station
     description: Operations about stations
-  - name: user.go
+  - name: user
     description: Operations about users
 
 paths:
@@ -114,7 +114,7 @@ paths:
       description: Get all users
       operationId: getUsers
       tags:
-          - user.go
+        - user
       responses:
         "200":
           description: OK
@@ -137,11 +137,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
     post:
-      summary: Create user.go
-      description: Create user.go
+      summary: Create user
+      description: Create user
       operationId: createUser
       tags:
-        - user.go
+        - user
       requestBody:
         required: true
         content:
@@ -170,11 +170,11 @@ paths:
 
   /users/{id}:
     put:
-      summary: Update user.go
-      description: Update user.go
+      summary: Update user
+      description: Update user
       operationId: updateUser
       tags:
-        - user.go
+        - user
       parameters:
         - name: id
           description: User ID
@@ -211,11 +211,11 @@ paths:
 
 
     delete:
-      summary: Delete user.go
-      description: Delete user.go
+      summary: Delete user
+      description: Delete user
       operationId: deleteUser
       tags:
-        - user.go
+        - user
       parameters:
         - name: id
           in: path
@@ -244,14 +244,14 @@ components:
     User:
       type: object
       required:
-          - id
-          - role
-          - first_name
-          - last_name
-          - email
-          - phone
-          - description
-          - deleted_at
+        - id
+        - role
+        - first_name
+        - last_name
+        - email
+        - phone
+        - description
+        - deleted_at
       properties:
         id:
           type: integer

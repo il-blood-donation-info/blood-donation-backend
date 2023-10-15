@@ -85,13 +85,13 @@ type ServerInterface interface {
 	// Get all users
 	// (GET /users)
 	GetUsers(w http.ResponseWriter, r *http.Request)
-	// Create user.go
+	// Create user
 	// (POST /users)
 	CreateUser(w http.ResponseWriter, r *http.Request)
-	// Delete user.go
+	// Delete user
 	// (DELETE /users/{id})
 	DeleteUser(w http.ResponseWriter, r *http.Request, id int)
-	// Update user.go
+	// Update user
 	// (PUT /users/{id})
 	UpdateUser(w http.ResponseWriter, r *http.Request, id int64)
 }
@@ -118,19 +118,19 @@ func (_ Unimplemented) GetUsers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Create user.go
+// Create user
 // (POST /users)
 func (_ Unimplemented) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Delete user.go
+// Delete user
 // (DELETE /users/{id})
 func (_ Unimplemented) DeleteUser(w http.ResponseWriter, r *http.Request, id int) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Update user.go
+// Update user
 // (PUT /users/{id})
 func (_ Unimplemented) UpdateUser(w http.ResponseWriter, r *http.Request, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -650,13 +650,13 @@ type StrictServerInterface interface {
 	// Get all users
 	// (GET /users)
 	GetUsers(ctx context.Context, request GetUsersRequestObject) (GetUsersResponseObject, error)
-	// Create user.go
+	// Create user
 	// (POST /users)
 	CreateUser(ctx context.Context, request CreateUserRequestObject) (CreateUserResponseObject, error)
-	// Delete user.go
+	// Delete user
 	// (DELETE /users/{id})
 	DeleteUser(ctx context.Context, request DeleteUserRequestObject) (DeleteUserResponseObject, error)
-	// Update user.go
+	// Update user
 	// (PUT /users/{id})
 	UpdateUser(ctx context.Context, request UpdateUserRequestObject) (UpdateUserResponseObject, error)
 }
@@ -864,24 +864,24 @@ func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, id i
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+RX32/bNhD+VwRuwF7kH1nSodOe3GUdgm5NsSBPRRAw5llmIfE48pTEDfS/DyQl2bKY",
-	"OO1qb0CeLOvueMf7vvtIPbA5lhoVKLIse2B2voSS+8eZlr8Zg8Y9a4MaDEnwlhKs5Tm4R1ppYBmzZKTK",
-	"WV2nzMDflTQgWPaxc7xKW0e8+QRzYnXKLoiTRDVcnQthwNrI6imbF2jhmmTpky/QlJxYxgQnGPm36TBG",
-	"QAEE4tp5PrD7UY6jTxbVSOYKDbCMTAVpeN/E5mjK8WkImxFzRuRajuYoIAc1gnsyfEQ890U6b5b5vJmr",
-	"wRIvdXInaZm4v8lnVPCLVALufX+k6JUuFf10si5bKoIczDNzaiNLblbvYBWWtteoQW107gaxAK5cG5zl",
-	"izq3haUULO2w2Vyuh8q6iF7jYwS4tBDh1v8MLQF2bqRumTogF5RcFlHLQhpL14qXEDXvkQYFfyqxXqKK",
-	"WwwW3gCqKh3iM1FKh+NfoNEQmA0Un+KIX6a3/82S2pa1hfRbvIM0nuRqgYEoG8iw2YezZIEmKbniuVR5",
-	"clMgikSg8iqT2KA2NuFKJJUFY8eu25Lcltkb73zaOs8+nLGU3YKxYfGj8XQ8bWeIa8kydjyejo/dJjgt",
-	"PRSTNoPHBWhY4u9ACS+KrpQwRMb/ORPB4WJtM2A1Khum4sfp1P3MUREovzbXupBz7z1xA7IWb/ckCUof",
-	"+L2BBcvYd5O1zE8ajZ+0Clx3febG8FVoc7/283cea1uVjmjxzQRSfmTNK3blIrq2TB6kqP24V5HeXGon",
-	"RO1qg84E80Vn1dzwEgiMS7i9VuOWnJ06NXJvHEgsZWEkGpJ2rA2Csm7drpGs66sQDpbeoFh9ES59rZP2",
-	"vJHr/g7ew51vRWU9p5uu/GATx7/Gsi6s0/itYdzIFZ+kfg/qf0m5ZzEtzqyUnXzDZN29JZLNG8Yh49FB",
-	"Ml4qXtESjfwMokl8fJDEb9HcSCFANVlPDpL1PVLyFivV7vXVQbL+CbREkbjks6LAu67VPx+YVa8OzOOe",
-	"Jg9ENK7I/vTbeUoFr8gRddkY9n8++QviMw+n/2agDw75I6dwC1YLuPs/zpFdufse2gjMvxpwXGkdt3EO",
-	"Zg/A1x92u7F9zil0tIecsV6Il0qiARWGLOpko7vFhWv6kFfhO+xRXgVzw6snb3HO52uvcPEb21CuIhmb",
-	"z4/xSyXDAL+opDxxhX8M+WDeN/J7vbx/Gz2b7l3PXu55OOBgRMpcAJjblnuVKVjGlkTasjrd5uIfOOdF",
-	"IuAWCtQlKEpCLEs3ArPJpHB+S7SUvZ6+njLHsib19orn7VTYhN9gRZtf0A3HbfddvjO4PfibyHab9VX9",
-	"TwAAAP//xmqO1tkVAAA=",
+	"H4sIAAAAAAAC/+RXb2/bthP+KgJ/P2Bv5D9Z0qHTXrnLOgTdmmKBXxVGQJtnmYXE48hTEjfQdx9ISrJl",
+	"c3Ha1d6AvLKsO/KO9zz38PTIFlhqVKDIsuyR2cUKSu4fJ1r+Ygwa96wNajAkwVtKsJbn4B5prYFlzJKR",
+	"Kmd1nTIDf1bSgGDZx85xlraOOP8EC2J1ym6Ik0S1vzsXwoC1kd1TtijQwi3J0gdfoik5sYwJTjDwb9P9",
+	"NQIKIBC3zvORPQxyHHyyqAYyV2iAZWQqSMP7Zm2OphxehmUTYs6IXMvBAgXkoAbwQIYPiOc+SefNMh83",
+	"czlY4qVO7iWtEvc3+YwKfpJKwIOvjxS91KWiHy42aUtFkIN5ZkxtZMnN+h2sw9b2FjWorcrNEQvgypXB",
+	"Wb6ocjtYSsHSDpvt7XqobJLoFT5GgKmFCLf+Y2gJsAsjdcvUPXJByWURtSylsXSreAlR8xFpUPCnAusV",
+	"qrjFYOENoKrSIT4RpXQ4/gEaDYHZQvEpjvhteuffTqktWZtIv8QHSONJrpYYiLKFDJt8uEqWaJKSK55L",
+	"lSfzAlEkApVXmcQGtbEJVyKpLBg7dNWW5I7M3njny9Z58uGKpewOjA2bnw3Hw3HbQ1xLlrHz4Xh47g7B",
+	"aeWhGLURPC5A+yn+CpTwouhSCU1k/J8rERxuNjYDVqOyoSu+H4/dzwIVgfJ7c60LufDeI9cgG/F2T5Kg",
+	"9Av/b2DJMva/0UbmR43Gj1oFrrs6c2P4OpS5n/v1O4+1rUpHtPhhAik/suYVm7kVXVlGj1LUvt2rSG2m",
+	"2glRu9teZYL5prNqbngJBMYF3N2rcUuuLp0auTcOJJay0BINSTvWBkHZlO5QS9b1LCwHS29QrL8Il77W",
+	"SXvdyHX/BO/h3peisp7TTVW+s4njX2PZJNZp/E4zbsWKd1K/BvU/pNyzmBZnVsouvmGwbm6JRPOGYYh4",
+	"dpKIU8UrWqGRn0E0gc9PEvgtmrkUAlQT9eIkUd8jJW+xUu1ZX50k6u9AKxSJCz4pCrzvSv3jiVn16sQ8",
+	"7mnynojGFdnffgdvqeAVuaKmjeH495MfEJ95Of07DX1yyP/mFm7BagF3/9nMDXtoIxj/bMARxXvtIhxs",
+	"02D62mvuMKrPuX/OjhAzVgjxUunT58EOeTqp6Ca3MJrv0yl8e8XpFGwNnZ4c25zP185s8RFtX58iEZvv",
+	"jeFL5UAfvH0BeWJajwIebMcG/KhD+rdRr/HR1evl3nt9Au4Kl3MFc9eyrjIFy9iKSFtWp7ss/A0XvEgE",
+	"3EGBugRFSVjL0q2F2WhUOL8VWspej1+PmeNXE3d3x+u2H2zC51jR9jdyw27bfXkfXNxe7c1Kf8Z6Vv8V",
+	"AAD//x5LSx24FQAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
