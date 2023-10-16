@@ -3,17 +3,18 @@
 package scraper
 
 import (
+	"blood-donation-backend/bloodinfo"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"time"
-	"os"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"io"
 	"log"
-	"blood-donation-backend/bloodinfo"
+	"net/http"
+	"os"
+	"time"
 )
 
 const customDateLayout = "2006-01-02"
@@ -35,6 +36,12 @@ type MadaResponse struct {
 	ErrorCode string `json:"ErrorCode"`
 	ErrorMsg  string `json:"ErrorMsg"`
 	Result    string `json:"Result"`
+}
+
+var Client Doer = &http.Client{}
+
+type Doer interface {
+	Do(req *http.Request) (*http.Response, error)
 }
 
 func (d *DonationDetail) UnmarshalJSON(data []byte) error {
@@ -90,8 +97,7 @@ func ScrapeMada() ([]DonationDetail, error) {
 	req.Header.Set("referer", "https://www.mdais.org/blood-donation")
 
 	// Execute the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := Client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch data from Mada: %v", err)
 	}
@@ -120,9 +126,8 @@ func ScrapeMada() ([]DonationDetail, error) {
 	return donationDetails, nil
 }
 
-
 func initDb() {
-    //Remove duplicate connection-DB code, new file for main server and scraper?
+	//Remove duplicate connection-DB code, new file for main server and scraper?
 	// Get PostgreSQL connection details from environment variables
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
@@ -150,65 +155,66 @@ func initDb() {
 	}
 }
 
-
 func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 
 	existingStation, err := findStationByName(d.Name) // Implement this function
 
-    if err != nil {
-    // Handle the error
-        log.Fatal(err)
-    }
+	if err != nil {
+		// Handle the error
+		log.Fatal(err)
+	}
 
-    stationSchedule := bloodinfo.StationSchedule{
-       Date: d.DateDonation.Format(customDateLayout),
-       OpenTime:  d.FromHour,
-       CloseTime: d.ToHour,
-   }
+	stationSchedule := bloodinfo.StationSchedule{
+		Date:      d.DateDonation,
+		OpenTime:  d.FromHour,
+		CloseTime: d.ToHour,
+	}
 
 	// If the station exists, add the new schedule to its StationSchedules
 	if existingStation != nil {
-		existingStation.StationSchedules = append(existingStation.StationSchedules, stationSchedule)
+		schedules := *existingStation.StationSchedule
+		schedules = append(schedules, stationSchedule)
+		existingStation.StationSchedule = &schedules
 		return *existingStation
 	}
 
 	// If the station doesn't exist, create a new one
 	station := bloodinfo.Station{
-		Address:   fmt.Sprintf("%s, %s %s", d.Street, d.NumHouse, d.City), //need formatting
-		Name:      d.Name,   //need formatting (at least trim)
-		StationSchedules: []bloodinfo.StationSchedule{stationSchedule},
+		Address:         fmt.Sprintf("%s, %s %s", d.Street, d.NumHouse, d.City), //need formatting
+		Name:            d.Name,                                                 //need formatting (at least trim)
+		StationSchedule: &[]bloodinfo.StationSchedule{stationSchedule},
 	}
 
 	return station
 }
 
-func SaveData(donationDetails []DonationDetail)error{
-    //todo : Clean DB before adding ? Filter for adding just stations for today ?
-    initDb()
+func SaveData(donationDetails []DonationDetail) error {
+	//todo : Clean DB before adding ? Filter for adding just stations for today ?
+	initDb()
 
-    for _, donation := range donationDetails {
-        station := ConvertDonationToStation(donation)
-    }
+	for _, donation := range donationDetails {
+		station := ConvertDonationToStation(donation)
+		result := db.Create(&station)
+		if result.Error != nil {
+			log.Fatal(result.Error)
+		}
+	}
 
-//     result := db.Create(&station)
-//     if result.Error != nil {
-//         log.Fatal(result.Error)
-//     }
 	fmt.Println("Bulk insert completed successfully.")
 	return nil
 }
 
 func findStationByName(name string) (*bloodinfo.Station, error) {
 	var station bloodinfo.Station
-    	result := db.Where("name = ?", name).First(&station)
-    	if result.Error != nil {
-    		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-    			// Station not found
-    			return nil, nil
-    		}
-    		// Handle other errors
-    		log.Fatal(result.Error)
-    		return nil, result.Error
-    	}
-    	return &station, nil
+	result := db.Where("name = ?", name).First(&station)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			// Station not found
+			return nil, nil
+		}
+		// Handle other errors
+		log.Fatal(result.Error)
+		return nil, result.Error
+	}
+	return &station, nil
 }

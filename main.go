@@ -41,6 +41,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	err = db.AutoMigrate(&bloodinfo.StationStatus{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = db.AutoMigrate(&bloodinfo.StationSchedule{})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	swagger, err := bloodinfo.GetSwagger()
 	if err != nil {
