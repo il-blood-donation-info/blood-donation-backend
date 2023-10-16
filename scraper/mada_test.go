@@ -23,4 +23,6 @@ func TestScrapeMada(t *testing.T) {
 	if len(madaResponse) == 0 {
 		t.Fatal("Received empty response from Mada")
 	}
+
+	SaveData(madaResponse);
 }
