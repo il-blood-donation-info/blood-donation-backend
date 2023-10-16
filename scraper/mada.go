@@ -19,6 +19,8 @@ import (
 const customDateLayout = "2006-01-02"
 const customDateTimeLayout = "2006-01-02 15:04"
 
+var db *gorm.DB // Global database variable
+
 type DonationDetail struct {
 	Name         string    `json:"Name"`
 	City         string    `json:"City"`
@@ -33,26 +35,6 @@ type MadaResponse struct {
 	ErrorCode string `json:"ErrorCode"`
 	ErrorMsg  string `json:"ErrorMsg"`
 	Result    string `json:"Result"`
-}
-
-func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
-	openDateTime := d.DateDonation.Format(customDateLayout) + " " + d.FromHour  //timezone issue ?
-	openTime, err := time.Parse(customDateTimeLayout, openDateTime)
-	if err != nil {
-		log.Fatal(err)
-	}
-	closeDateTime := d.DateDonation.Format(customDateLayout) + " " + d.ToHour
-	closeTime, err := time.Parse(customDateTimeLayout, closeDateTime)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return bloodinfo.Station{
-		Address:   fmt.Sprintf("%s, %s %s", d.Street, d.NumHouse, d.City), //need formatting
-		Name:      d.Name,   //need formatting (at least trim)
-		OpenTime:  openTime,
-		CloseTime: closeTime,
-	}
 }
 
 func (d *DonationDetail) UnmarshalJSON(data []byte) error {
@@ -138,9 +120,8 @@ func ScrapeMada() ([]DonationDetail, error) {
 	return donationDetails, nil
 }
 
-func SaveData(donationDetails []DonationDetail)error{
-    //todo : Clean DB before adding ? Filter for adding just stations for today ?
 
+func initDb() {
     //Remove duplicate connection-DB code, new file for main server and scraper?
 	// Get PostgreSQL connection details from environment variables
 	dbHost := os.Getenv("DB_HOST")
@@ -163,22 +144,71 @@ func SaveData(donationDetails []DonationDetail)error{
 	}
 	defer sqlDB.Close()
 
-    if err != nil {
-        return err
-    }
 	err = db.AutoMigrate(&bloodinfo.Station{})
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+
+func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
+
+	existingStation, err := findStationByName(d.Name) // Implement this function
+
+    if err != nil {
+    // Handle the error
+        log.Fatal(err)
+    }
+
+    stationSchedule := bloodinfo.StationSchedule{
+       Date: d.DateDonation.Format(customDateLayout),
+       OpenTime:  d.FromHour,
+       CloseTime: d.ToHour,
+   }
+
+	// If the station exists, add the new schedule to its StationSchedules
+	if existingStation != nil {
+		existingStation.StationSchedules = append(existingStation.StationSchedules, stationSchedule)
+		return *existingStation
+	}
+
+	// If the station doesn't exist, create a new one
+	station := bloodinfo.Station{
+		Address:   fmt.Sprintf("%s, %s %s", d.Street, d.NumHouse, d.City), //need formatting
+		Name:      d.Name,   //need formatting (at least trim)
+		StationSchedules: []bloodinfo.StationSchedule{stationSchedule},
+	}
+
+	return station
+}
+
+func SaveData(donationDetails []DonationDetail)error{
+    //todo : Clean DB before adding ? Filter for adding just stations for today ?
+    initDb()
 
     for _, donation := range donationDetails {
         station := ConvertDonationToStation(donation)
-        result := db.Create(&station)
-        if result.Error != nil {
-            log.Fatal(result.Error)
-        }
     }
 
+//     result := db.Create(&station)
+//     if result.Error != nil {
+//         log.Fatal(result.Error)
+//     }
 	fmt.Println("Bulk insert completed successfully.")
 	return nil
+}
+
+func findStationByName(name string) (*bloodinfo.Station, error) {
+	var station bloodinfo.Station
+    	result := db.Where("name = ?", name).First(&station)
+    	if result.Error != nil {
+    		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+    			// Station not found
+    			return nil, nil
+    		}
+    		// Handle other errors
+    		log.Fatal(result.Error)
+    		return nil, result.Error
+    	}
+    	return &station, nil
 }
