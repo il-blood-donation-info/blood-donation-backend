@@ -1,0 +1,27 @@
+version: '3'
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: mada
+      POSTGRES_PASSWORD: mada
+      POSTGRES_DB: bloodinfo
+    ports:
+      - "5432:5432"
+
+  blood-info:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    restart: on-failure
+    environment:
+      DB_USER: mada
+      DB_PASSWORD: mada
+      DB_NAME: bloodinfo
+      DB_HOST: db
+      DB_PORT: 5432
+
