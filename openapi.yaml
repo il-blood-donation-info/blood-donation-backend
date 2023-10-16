@@ -234,6 +234,7 @@ paths:
           required: true
           schema:
             type: integer
+            format: int64
           description: User ID
       responses:
         "200":
@@ -263,7 +264,6 @@ components:
         - email
         - phone
         - description
-        - deleted_at
       properties:
         id:
           type: integer
@@ -300,7 +300,6 @@ components:
         - open_time
         - close_time
         - is_open
-        - deleted_at
       properties:
         id:
           type: integer

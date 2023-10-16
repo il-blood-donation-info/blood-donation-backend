@@ -36,25 +36,25 @@ type ApiError struct {
 
 // Station defines model for Station.
 type Station struct {
-	Address   string         `json:"address"`
-	CloseTime time.Time      `json:"close_time"`
-	DeletedAt gorm.DeletedAt `gorm:"type:timestamp with time zone;index" json:"-"`
-	Id        int64          `gorm:"primaryKey" json:"id"`
-	IsOpen    bool           `json:"is_open"`
-	Name      string         `json:"name"`
-	OpenTime  time.Time      `json:"open_time"`
+	Address   string          `json:"address"`
+	CloseTime time.Time       `json:"close_time"`
+	DeletedAt *gorm.DeletedAt `gorm:"type:timestamp with time zone;index" json:"-"`
+	Id        int64           `gorm:"primaryKey" json:"id"`
+	IsOpen    bool            `json:"is_open"`
+	Name      string          `json:"name"`
+	OpenTime  time.Time       `json:"open_time"`
 }
 
 // User defines model for User.
 type User struct {
-	DeletedAt   gorm.DeletedAt `gorm:"type:timestamp with time zone;index" json:"-"`
-	Description string         `json:"description"`
-	Email       string         `json:"email"`
-	FirstName   string         `json:"first_name"`
-	Id          int64          `gorm:"primaryKey" json:"id"`
-	LastName    string         `json:"last_name"`
-	Phone       string         `json:"phone"`
-	Role        UserRole       `json:"role"`
+	DeletedAt   *gorm.DeletedAt `gorm:"type:timestamp with time zone;index" json:"-"`
+	Description string          `json:"description"`
+	Email       string          `json:"email"`
+	FirstName   string          `json:"first_name"`
+	Id          int64           `gorm:"primaryKey" json:"id"`
+	LastName    string          `json:"last_name"`
+	Phone       string          `json:"phone"`
+	Role        UserRole        `json:"role"`
 }
 
 // UserRole defines model for User.Role.
@@ -91,7 +91,7 @@ type ServerInterface interface {
 	CreateUser(w http.ResponseWriter, r *http.Request)
 	// Delete user
 	// (DELETE /users/{id})
-	DeleteUser(w http.ResponseWriter, r *http.Request, id int)
+	DeleteUser(w http.ResponseWriter, r *http.Request, id int64)
 	// Update user
 	// (PUT /users/{id})
 	UpdateUser(w http.ResponseWriter, r *http.Request, id int64)
@@ -127,7 +127,7 @@ func (_ Unimplemented) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 // Delete user
 // (DELETE /users/{id})
-func (_ Unimplemented) DeleteUser(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) DeleteUser(w http.ResponseWriter, r *http.Request, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -224,7 +224,7 @@ func (siw *ServerInterfaceWrapper) DeleteUser(w http.ResponseWriter, r *http.Req
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id int64
 
 	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
 	if err != nil {
@@ -589,7 +589,7 @@ func (response CreateUser500JSONResponse) VisitCreateUserResponse(w http.Respons
 }
 
 type DeleteUserRequestObject struct {
-	Id int `json:"id"`
+	Id int64 `json:"id"`
 }
 
 type DeleteUserResponseObject interface {
@@ -822,7 +822,7 @@ func (sh *strictHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteUser operation middleware
-func (sh *strictHandler) DeleteUser(w http.ResponseWriter, r *http.Request, id int) {
+func (sh *strictHandler) DeleteUser(w http.ResponseWriter, r *http.Request, id int64) {
 	var request DeleteUserRequestObject
 
 	request.Id = id
@@ -883,24 +883,24 @@ func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, id i
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xY32/bNhD+VwRuwF7kH1mSodOe3GUdgm5NsSBPhRHQ5llmIfE48pTEDfS/DyQl2bJU",
-	"O8lmb0D2FFl35B3v++47Ko9sjrlGBYosSx6ZnS8h5/5xouUvxqBxz9qgBkMSvCUHa3kK7pFWGljCLBmp",
-	"UlaWMTPwZyENCJZ8ahynce2Is88wJ1bG7Jo4SVTd3bkQBqzt2T1m8wwt3JLMffAFmpwTS5jgBAP/Nu6u",
-	"EZABgbh1no/sYZDi4LNFNZCpQgMsIVNAHN5Xa1M0+fAiLJsQc0bkWg7mKCAFNYAHMnxAPPVJOm+W+LiJ",
-	"y8ESz3V0L2kZuZ/RF1Twk1QCHnx9pGilLhX9cLZOWyqCFMwTY2ojc25W72EVtra3qEFtVG6GmAFXrgyK",
-	"59BbU7fkWSXdAlkKVu0eN9ht7tpCbZ1kC5g+gtxY6OHefwxNAXZupK6Z3Cku5FxmvZaFNJZuv4rKAWmS",
-	"8V2B9RJVv8Vg5g2gitwBPxG5dDj+ARoNgdlAcRdV/Dat82+mVJesTqRd4j2k8U2gFhiIsoEMm3y8jBZo",
-	"opwrnkqVRrMMUUQClVehyAY1shFXIiosGDt01ZbkjszeeueL2nny8ZLF7A6MDZufDMfDcd1KXEuWsNPh",
-	"eHjqDsFp6aEY1RE8LkDdFH8FiniWNamEJjL+x6UIDtdrmwGrUdnQFd+Px+7PHBWB8ntzrTM5994j1yBr",
-	"cXdPkiD3C781sGAJ+2a0HgOjagaMaoUumzpzY/gqlLmd+9V753U2PnlWFruCN9OnJ9qN4gUt0cgvIFzc",
-	"82ee/qVxa0PMbJG7jupHLXTfJ1a9YlO3osF/9ChF6XWt6CHBjXbCW+/WoUAwXzdWzQ3PgcC4gNt7VW7R",
-	"5YWTXffGsbEW66TqxqY9g3Kuq7RPe8pyGpaDpbcoVs+CoC3q0l5Vc6t9gg9w70tRWN+8VVW+s5FrtMqy",
-	"TqwZdluqsxGrXzLaNSj/Zm89qaW+3kJHpPLw32raKvDpUQK/QzOTQoCqop4dJeoHpOgdFqo+6/lRov4O",
-	"tEQRueCTLMP7ptQ/HplV50fmcUuTOyLar8h+zO8dx8GrZxbfVIbDD2J/E/5/Cj9hCtdg1YC732zqbrVo",
-	"ezD+2YAjivfaRjjYboLppWNuP6pPmT8nB4jZVwjxWunT5sEWeRqpaG5u4RukS6fwkdlPp2Cr6LTz2uZ8",
-	"Xnpn67+idfWpJ2L1YTV8rRxog9cVkB239V7Ag+3QgB/0kv7PqNf44Or1eudem4DbwuVcwdzVrCtMxhK2",
-	"JNKWlfE2C3/DOc8iAXeQoc5BURTWsnhjYTIaZc5viZaSN+M3Y+b4VcXd3vGq7gcb8RkWtPmNXLHbNv9i",
-	"2Lu4Hu3VSn/Gclr+FQAA//+B/QhLwRYAAA==",
+	"H4sIAAAAAAAC/+xYX2/bNhD/KgI3YC/ynyzJ0GlP7rIOQbemWOCnwgho8yyzkHgceUriBvruA0lJtizV",
+	"STrYLZA+Rdb95d3vfkflgS0w16hAkWXJA7OLFeTcP060/MMYNO5ZG9RgSIKX5GAtT8E90loDS5glI1XK",
+	"yjJmBv4tpAHBkg+N4iyuFXH+ERbEyphdEyeJquudC2HA2h7vMVtkaOGGZO6DL9HknFjCBCcY+Ldx10ZA",
+	"BgTixmk+sPtBioOPFtVApgoNsIRMAXF4X9mmaPLhRTCbEHNC5FoOFiggBTWAezJ8QDz1STptlvi4icvB",
+	"Es91dCdpFbmf0SdU8JtUAu59faRopS4V/XK2SVsqghTME2NqI3Nu1m9hHVzbG9Sgtio3R8yAK1cGxXPo",
+	"rakzeVZJd5osBau8x03vtr22urZJsg8TUws9cPvGGijALozUNXg79YScy6xXspTG0s1nG3FAZGR8X2C9",
+	"QtUvMZh5Aagid72eiFwqFrN/QKMhMFtd3IcO76Z1/u2U6pLVibRL3MWJh7paYsDGVjPY5P1ltEQT5Vzx",
+	"VKo0mmeIIhKoPNdENnCOjbgSUWHB2KErsCR3SvbaK1/UypP3lyxmt2BscH4yHA/H9cBwLVnCTofj4anL",
+	"m9PKV39UR/CtAOqm+CdQxLOsSSWMivE/LkVQuN7IDFiNyoZB+Hk8dn8WqAiU9821zuTCa4/cTGwo3D1J",
+	"gtwb/mhgyRL2w2hD9qOK6Uc1D5dNnbkxfB3K3M796q3TOhufPCuLfcGbHdMTbap4QSs08hMIF/f8maf/",
+	"0ri1IGa2yN0Q9XctDNwHVr1iM2fR9H/0IEXpqazoAcFUO3qtvXUgEMTXjVRzw3MgMC7grq9KLbq8cOTq",
+	"3jg01pScVAPYTGQgy02VHqObspwFc7D0GsX6WS1o87i0V9V2ap/gHdz5UhTWD29VlZ9s5AatkmwSa1ba",
+	"DtFsxeqnjHYNyv85W08aqc+P0BGhPPxaQ1sFPj1K4Ddo5lIIUFXUs6NEfYcUvcFC1Wc9P0rUv4FWKCIX",
+	"fJJleNeU+tcjo+r8yDhucXKHRPsZ2a/5R9dx0OrZxdNKcPhF7C+/37fwE7Zw3ay64e43m7mLLNqeHv9u",
+	"wAHFa+12OMimQfSla+7xrj5l/5wcIGZfIcRLhU8bBzvgaaiiubmFz84unMJ3ZT+cgqyC095rm9M58J2t",
+	"S1g9KVQf18OXCop2N7uMsuf63ouAIPtGEPA16Wx8cDp7uYuwDcBdJnOqYG5r1BUmYwlbEWnLyngXhX/h",
+	"gmeRgFvIUOegKAq2LN4yTEajzOmt0FLyavxqzBy+qri7Hq/qebARn2NB2x/NFbpt8z+HR43rXV9Z+jOW",
+	"s/K/AAAA//99ISIWuBYAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
