@@ -25,3 +25,43 @@ export DB_NAME=bloodinfo
 export DB_PASSWORD= # your password
 go run main.go
 ```
+
+# Running using docker-compose
+
+## Building the image and running the containers
+```bash
+docker-compose up --build
+```
+## Stopping the containers
+```bash
+docker-compose down
+```
+
+# Testing the API
+
+## Creating a user
+```bash
+curl -X POST http://localhost:8080/users -H "Content-Type: application/json" -d '{"description": "User description",
+    "email": "user@example.com",
+    "first_name": "John",
+    "id": 1,
+    "last_name": "Doe",
+    "phone": "1234567890",
+    "role": "Admin"}'
+```
+
+## Getting a user
+```bash
+curl -s -X GET http://localhost:8080/users | jq
+[
+  {
+    "description": "User description",
+    "email": "user@example.com",
+    "first_name": "John",
+    "id": 1,
+    "last_name": "Doe",
+    "phone": "1234567890",
+    "role": "Admin"
+  }
+]
+```
