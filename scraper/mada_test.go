@@ -15,7 +15,7 @@ func TestScrapeMada(t *testing.T) {
 		fmt.Printf("Name: %s\n", result.Name)
 		fmt.Printf("Address: %s %s %s\n", result.City, result.Street, result.NumHouse)
 		fmt.Printf("Open Time: %s\n", result.FromHour)
-		fmt.Printf("Close Time: %s\n\n", result.ToHour)
+		fmt.Printf("Close Time: %s\n", result.ToHour)
 		fmt.Printf("Datetime : %s\n\n", result.DateDonation)
 	}
 
