@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"github.com/davecgh/go-spew/spew"
+	"strings"
 )
 
 const customDateLayout = "2006-01-02"
@@ -169,6 +171,20 @@ func initDb()error{
         return err
 	}
 
+	err = db.AutoMigrate(&bloodinfo.StationStatus{})
+	if err != nil {
+        log.Println("Error during database migration:", err)
+		log.Fatal(err)
+        return err
+	}
+
+	err = db.AutoMigrate(&bloodinfo.StationSchedule{})
+	if err != nil {
+        log.Println("Error during database migration:", err)
+		log.Fatal(err)
+        return err
+	}
+
     dbManager = &DBManager{DB: db}
 
     log.Println("Database successfully initialised")
@@ -188,8 +204,11 @@ func closeDbConnection() {
 }
 
 func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
-    log.Println("Convert  data for " + d.Name)
-	existingStation, err := findStationByName(d.Name)
+    stationName := strings.TrimSpace(d.Name)
+    stationAddress := strings.TrimSpace(fmt.Sprintf("%s %s %s", strings.TrimSpace(d.City), strings.TrimSpace(d.NumHouse), strings.TrimSpace(d.Street)))
+
+    log.Println("Convert  data for " + stationName)
+	existingStation, err := findStationByName(stationName)
 
 	if err != nil {
 		// Handle the error
@@ -220,11 +239,18 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
     log.Println("Station does not exist, need to create it")
 	// If the station doesn't exist, create a new one
 	station := bloodinfo.Station{
-		Address:         fmt.Sprintf("%s, %s %s", d.Street, d.NumHouse, d.City), //need formatting
-		Name:            d.Name,                                                 //need formatting (at least trim)
+		Address:         stationAddress,
+		Name:            stationName,
 		StationSchedule: &[]bloodinfo.StationSchedule{stationSchedule},
 		StationStatus:   &[]bloodinfo.StationStatus{},
 	}
+
+
+    log.Println("Creating " + station.Name)
+    result := dbManager.DB.Create(&station)
+    if result.Error != nil {
+        log.Fatal(result.Error)
+    }
 
 	return station
 }
@@ -233,15 +259,24 @@ func SaveData(donationDetails []DonationDetail) error {
 	//todo : Clean DB before adding ? Filter for adding just stations for today ?
     log.Println("Beginning of SaveData")
 
+    var resultStations []bloodinfo.Station
+
+
 	for _, donation := range donationDetails {
 		station := ConvertDonationToStation(donation)
+	    log.Printf("station: %+v", station)
 
-	    log.Println("Ready to handle stationData " + station.Name)
-		result := dbManager.DB.Create(&station)
-		if result.Error != nil {
-			log.Fatal(result.Error)
-		}
+        existingIndex := findStationIndexByName(resultStations, station.Name)
+
+        if existingIndex != -1 {
+            // Concatenate the StationSchedules for stations with the same name
+            resultStations[existingIndex].StationSchedule = concatenateSchedules(resultStations[existingIndex].StationSchedule, station.StationSchedule)
+        } else {
+            resultStations = append(resultStations, station)
+        }
 	}
+
+    spew.Dump(resultStations)
 
 	fmt.Println("Bulk insert completed successfully.")
 	return nil
@@ -262,4 +297,27 @@ func findStationByName(name string) (*bloodinfo.Station, error) {
 		return nil, result.Error
 	}
 	return &station, nil
+}
+
+// findStationIndexByName finds the index of a station with the given name in the list
+func findStationIndexByName(stations []bloodinfo.Station, name string) int {
+    for i, station := range stations {
+        if station.Name == name {
+            return i
+        }
+    }
+    return -1
+}
+
+// concatenateSchedules concatenates two StationSchedule arrays
+func concatenateSchedules(schedule1 *[]bloodinfo.StationSchedule, schedule2 *[]bloodinfo.StationSchedule) *[]bloodinfo.StationSchedule {
+    if schedule1 == nil {
+        return schedule2
+    }
+    if schedule2 == nil {
+        return schedule1
+    }
+
+    concatenated := append(*schedule1, *schedule2...)
+    return &concatenated
 }
