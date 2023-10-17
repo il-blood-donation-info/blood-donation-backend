@@ -30,3 +30,4 @@ _generated.go
 *.sublime-workspace
 *.swp
 *.swo
+*.pem
