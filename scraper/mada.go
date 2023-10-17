@@ -20,7 +20,11 @@ import (
 const customDateLayout = "2006-01-02"
 const customDateTimeLayout = "2006-01-02 15:04"
 
-var db *gorm.DB // Global database variable
+var dbManager *DBManager
+
+type DBManager struct {
+	DB *gorm.DB
+}
 
 type DonationDetail struct {
 	Name         string    `json:"Name"`
@@ -42,6 +46,12 @@ var Client Doer = &http.Client{}
 
 type Doer interface {
 	Do(req *http.Request) (*http.Response, error)
+}
+
+func init() {
+    // This will ensure that initDb is called only once
+	log.Println("Call init function in mada file")
+	initDb()
 }
 
 func (d *DonationDetail) UnmarshalJSON(data []byte) error {
@@ -126,7 +136,14 @@ func ScrapeMada() ([]DonationDetail, error) {
 	return donationDetails, nil
 }
 
-func initDb() {
+func initDb()error{
+    log.Println("Initializing the database...")
+
+    if dbManager  != nil{
+        log.Println("Db already initialised, exiting initDb")
+        return nil
+    }
+
 	//Remove duplicate connection-DB code, new file for main server and scraper?
 	// Get PostgreSQL connection details from environment variables
 	dbHost := os.Getenv("DB_HOST")
@@ -142,22 +159,37 @@ func initDb() {
 	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
+        return err
 	}
-	sqlDB, err := db.DB()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer sqlDB.Close()
 
 	err = db.AutoMigrate(&bloodinfo.Station{})
 	if err != nil {
+        log.Println("Error during database migration:", err)
 		log.Fatal(err)
+        return err
 	}
+
+    dbManager = &DBManager{DB: db}
+
+    log.Println("Database successfully initialised")
+    return nil
+}
+
+func closeDbConnection() {
+    // Close the database connection
+    if dbManager != nil {
+        sqlDB, err := dbManager.DB.DB()
+        if err != nil {
+            log.Fatal(err)
+        }
+        sqlDB.Close()
+        log.Println("Database connection closed")
+    }
 }
 
 func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
-
-	existingStation, err := findStationByName(d.Name) // Implement this function
+    log.Println("Convert  data for " + d.Name)
+	existingStation, err := findStationByName(d.Name)
 
 	if err != nil {
 		// Handle the error
@@ -172,17 +204,26 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 
 	// If the station exists, add the new schedule to its StationSchedules
 	if existingStation != nil {
-		schedules := *existingStation.StationSchedule
-		schedules = append(schedules, stationSchedule)
-		existingStation.StationSchedule = &schedules
+	    log.Println("Station already exist %", existingStation.Id)
+
+        // Check if StationSchedule is nil, and initialize it with an empty slice if necessary
+        if existingStation.StationSchedule == nil {
+            existingStation.StationSchedule = &[]bloodinfo.StationSchedule{}
+        }
+
+        // Append the new schedule to StationSchedules
+        *existingStation.StationSchedule = append(*existingStation.StationSchedule, stationSchedule)
+
 		return *existingStation
 	}
 
+    log.Println("Station does not exist, need to create it")
 	// If the station doesn't exist, create a new one
 	station := bloodinfo.Station{
 		Address:         fmt.Sprintf("%s, %s %s", d.Street, d.NumHouse, d.City), //need formatting
 		Name:            d.Name,                                                 //need formatting (at least trim)
 		StationSchedule: &[]bloodinfo.StationSchedule{stationSchedule},
+		StationStatus:   &[]bloodinfo.StationStatus{},
 	}
 
 	return station
@@ -190,11 +231,13 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 
 func SaveData(donationDetails []DonationDetail) error {
 	//todo : Clean DB before adding ? Filter for adding just stations for today ?
-	initDb()
+    log.Println("Beginning of SaveData")
 
 	for _, donation := range donationDetails {
 		station := ConvertDonationToStation(donation)
-		result := db.Create(&station)
+
+	    log.Println("Ready to handle stationData " + station.Name)
+		result := dbManager.DB.Create(&station)
 		if result.Error != nil {
 			log.Fatal(result.Error)
 		}
@@ -205,8 +248,10 @@ func SaveData(donationDetails []DonationDetail) error {
 }
 
 func findStationByName(name string) (*bloodinfo.Station, error) {
+    log.Println("Finding station by name:", name)  // Add this line
+
 	var station bloodinfo.Station
-	result := db.Where("name = ?", name).First(&station)
+	result := dbManager.DB.Where("name = ?", name).First(&station)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			// Station not found
