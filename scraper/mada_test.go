@@ -101,50 +101,51 @@ func TestScrapeMada(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to scrape Mada: %s", err)
 	}
-	//
-	//for _, result := range madaResponse {
-	//	fmt.Printf("Name: %s\n", result.Name)
-	//	fmt.Printf("Address: %s %s %s\n", result.City, result.Street, result.NumHouse)
-	//	fmt.Printf("Open Time: %s\n", result.FromHour)
-	//	fmt.Printf("Close Time: %s\n\n", result.ToHour)
-	//	fmt.Printf("Datetime : %s\n\n", result.DateDonation)
-	//}
 
 	// Basic check if we got some data
 	if len(madaResponse) == 0 {
 		t.Fatal("Received empty response from Mada")
 	}
 
-	SaveData(madaResponse)
-	schedule, err := bloodinfo.GetStationsFullSchedule(dbManager.DB)
-	if err != nil {
-		t.Fatalf("Failed to get schedule Mada: %s", err)
-	}
-	fmt.Println(schedule)
+	bloodinfo.GetStationsFullSchedule(dbManager.DB)
+
+//	SaveData(madaResponse)
+//	schedule, err := bloodinfo.GetStationsFullSchedule(dbManager.DB)
+//	if err != nil {
+//		t.Fatalf("Failed to get schedule Mada: %s", err)
+//	}
+//	fmt.Println(schedule)
 }
 
-//
-//func TestScraper2DB(t *testing.T) {
-//	defer closeDbConnection()
-//	setupDone.Do(SetupTests)
-//	madaResponse, err := ScrapeMada()
-//	if err != nil {
-//		t.Fatalf("Failed to scrape Mada: %s", err)
-//	}
-//
-//	// 	for _, result := range madaResponse {
-//	// 		fmt.Printf("Name: %s\n", result.Name)
-//	// 		fmt.Printf("Address: %s %s %s\n", result.City, result.Street, result.NumHouse)
-//	// 		fmt.Printf("Open Time: %s\n", result.FromHour)
-//	// 		fmt.Printf("Close Time: %s\n\n", result.ToHour)
-//	// 		fmt.Printf("Datetime : %s\n\n", result.DateDonation)
-//	// 	}
-//
-//	// Basic check if we got some data
-//	if len(madaResponse) == 0 {
-//		t.Fatal("Received empty response from Mada")
-//	}
-//
-//	log.Println("SaveData")
-//	SaveData(madaResponse)
-//}
+
+func TestScraper2DB(t *testing.T) {
+	defer closeDbConnection()
+	setupDone.Do(SetupTests)
+	madaResponse, err := ScrapeMada()
+	if err != nil {
+		t.Fatalf("Failed to scrape Mada: %s", err)
+	}
+
+	// Basic check if we got some data
+	if len(madaResponse) == 0 {
+		t.Fatal("Received empty response from Mada")
+	}
+
+	// For testing purpose: Delete all records in DB. SaveData is creating all data for now (stations & schedules)
+	err = dbManager.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&bloodinfo.Station{}).Error
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = dbManager.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&bloodinfo.StationSchedule{}).Error
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = dbManager.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&bloodinfo.StationStatus{}).Error
+	if err != nil {
+		log.Fatal(err)
+	}
+
+
+	log.Println("SaveData")
+	SaveData(madaResponse)
+}

@@ -245,12 +245,6 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 		StationSchedule: &[]bloodinfo.StationSchedule{stationSchedule},
 	}
 
-	log.Println("Creating " + station.Name)
-	result := dbManager.DB.Create(&station)
-	if result.Error != nil {
-		log.Fatal(result.Error)
-	}
-
 	return station
 }
 
@@ -274,7 +268,14 @@ func SaveData(donationDetails []DonationDetail) error {
 		}
 	}
 
-	//spew.Dump(resultStations)
+	//For testing purpose: All the stations & all associated scheduled are created
+	for _, station := range resultStations {
+		log.Println("Creating " + station.Name)
+		result := dbManager.DB.Create(&station)
+		if result.Error != nil {
+			log.Fatal(result.Error)
+		}
+	}
 
 	fmt.Println("Bulk insert completed successfully.")
 	return nil
