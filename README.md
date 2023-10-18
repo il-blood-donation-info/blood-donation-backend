@@ -1,7 +1,7 @@
 # Updating the API and generating code
-In order to modify the API, edit the openapi.yaml file. Then, run the following commands to generate the code:
+In order to modify the API, edit the api/openapi.yaml file. Then, run the following commands to generate the code:
 ```bash
-oapi-codegen -config server.cfg.yaml openapi.yaml
+oapi-codegen -config api/api.cfg.yaml api/openapi.yaml
 ```
 
 ## Installing the code-gen dependency
@@ -23,6 +23,7 @@ export DB_PORT=5432
 export DB_USER=mada
 export DB_NAME=bloodinfo
 export DB_PASSWORD= # your password
+go run  cert/tls-self-signed-cert.go
 go run main.go
 ```
 
@@ -41,7 +42,7 @@ docker-compose down
 
 ## Creating a user
 ```bash
-curl -X POST http://localhost:8080/users -H "Content-Type: application/json" -d '{"description": "User description",
+curl --cacert ./cert.pem -X POST https://localhost:8443/users -H "Content-Type: application/json" -d '{"description": "User description",
     "email": "user@example.com",
     "first_name": "John",
     "id": 1,
@@ -52,7 +53,7 @@ curl -X POST http://localhost:8080/users -H "Content-Type: application/json" -d 
 
 ## Getting a user
 ```bash
-curl -s -X GET http://localhost:8080/users | jq
+curl --cacert ./cert.pem -s -X GET https://localhost:8443/users | jq
 [
   {
     "description": "User description",

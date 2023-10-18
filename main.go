@@ -1,7 +1,10 @@
 package main
 
 import (
-	"blood-donation-backend/bloodinfo"
+	"blood-donation-backend/api"
+	"blood-donation-backend/server"
+	"crypto/tls"
+	"flag"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	middleware "github.com/oapi-codegen/nethttp-middleware"
@@ -15,6 +18,9 @@ import (
 
 func main() {
 	var err error
+	certFile := flag.String("certfile", "cert.pem", "certificate PEM file")
+	keyFile := flag.String("keyfile", "key.pem", "key PEM file")
+	flag.Parse()
 
 	// Get PostgreSQL connection details from environment variables
 	dbHost := os.Getenv("DB_HOST")
@@ -33,31 +39,34 @@ func main() {
 	}
 
 	// AutoMigrate will create the tables based on the struct definitions
-	err = db.AutoMigrate(&bloodinfo.User{})
+	err = db.AutoMigrate(&api.User{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = db.AutoMigrate(&bloodinfo.Station{})
+	err = db.AutoMigrate(&api.Station{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	swagger, err := bloodinfo.GetSwagger()
+	swagger, err := api.GetSwagger()
 	if err != nil {
 		log.Fatalf("Error loading swagger spec\n: %s", err)
 	}
 	swagger.Servers = nil
 
-	strictBloodInfoServer := bloodinfo.NewStrictBloodInfoServer(db)
-	strictHandler := bloodinfo.NewStrictHandler(strictBloodInfoServer, nil)
+	strictBloodInfoServer := server.NewStrictBloodInfoServer(db)
+	strictHandler := api.NewStrictHandler(strictBloodInfoServer, nil)
 
 	r := chi.NewRouter()
 	r.Use(middleware.OapiRequestValidator(swagger))
-	bloodinfo.HandlerFromMux(strictHandler, r)
+	api.HandlerFromMux(strictHandler, r)
 	s := &http.Server{
 		Handler: r,
-		Addr:    net.JoinHostPort("0.0.0.0", "8080"),
+		Addr:    net.JoinHostPort("0.0.0.0", "8443"),
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS13,
+		},
 	}
-	log.Println("Server is running on port 8080")
-	log.Fatal(s.ListenAndServe())
+	log.Println("Server is running on port 8443")
+	log.Fatal(s.ListenAndServeTLS(*certFile, *keyFile))
 }

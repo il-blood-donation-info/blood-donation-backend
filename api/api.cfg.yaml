@@ -1,5 +1,5 @@
-package: bloodinfo
-output: bloodinfo/bloodinfo.gen.go
+package: api
+output: api/api.gen.go
 generate:
   embedded-spec: true
   strict-server: true
