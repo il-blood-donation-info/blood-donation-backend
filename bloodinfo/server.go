@@ -16,7 +16,7 @@ func NewStrictBloodInfoServer(db *gorm.DB) StrictBloodInfoServer {
 }
 
 // GetSchedule gets schedule
-func (s StrictBloodInfoServer) GetSchedule(ctx context.Context, request GetStationsRequestObject) (GetScheduleResponseObject, error) {
+func (s StrictBloodInfoServer) GetSchedule(ctx context.Context, request GetScheduleRequestObject) (GetScheduleResponseObject, error) {
 	var stationsSchedule []SchedulePoint
 	schedule, err := GetStationsFullSchedule(s.db)
 	stationsSchedule = ConvertToSchedulePoints(schedule)

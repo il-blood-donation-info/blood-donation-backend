@@ -375,10 +375,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/StationSchedule"
-        station_status:
-          type: array
-          items:
-            $ref: "#/components/schemas/StationStatus"
 
     StationSchedule:
       type: object
@@ -408,21 +404,25 @@ components:
         close_time:
           type: string
           format: time
+        station_status:
+          type: array
+          items:
+            $ref: "#/components/schemas/StationStatus"
 
 
     StationStatus:
       type: object
       required:
-        - station_id
+        - station_schedule_id
         - is_open
-        - when_set_by_user
+        - created_at
       properties:
         id:
           type: integer
           format: int64
           x-oapi-codegen-extra-tags:
             gorm: "primaryKey"
-        station_id:
+        station_schedule_id:
           type: integer
           format: int64
           description: The ID of the related station
@@ -430,9 +430,12 @@ components:
             gorm: "index"
         is_open:
           type: boolean
-        when_set_by_user:
+        created_at:
           type: string
           format: date-time
+        user_id:
+          type: integer
+          format: int64
 
     ApiError:
       type: object

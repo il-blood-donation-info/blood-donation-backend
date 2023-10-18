@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"io"
@@ -244,7 +243,6 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 		Address:         stationAddress,
 		Name:            stationName,
 		StationSchedule: &[]bloodinfo.StationSchedule{stationSchedule},
-		StationStatus:   &[]bloodinfo.StationStatus{},
 	}
 
 	log.Println("Creating " + station.Name)
@@ -276,7 +274,7 @@ func SaveData(donationDetails []DonationDetail) error {
 		}
 	}
 
-	spew.Dump(resultStations)
+	//spew.Dump(resultStations)
 
 	fmt.Println("Bulk insert completed successfully.")
 	return nil
