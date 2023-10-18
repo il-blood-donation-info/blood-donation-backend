@@ -20,6 +20,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"gorm.io/gorm"
 )
 
@@ -32,6 +33,17 @@ const (
 // ApiError defines model for ApiError.
 type ApiError struct {
 	Message string `json:"message"`
+}
+
+// SchedulePoint defines model for SchedulePoint.
+type SchedulePoint struct {
+	Address   string             `json:"address"`
+	CloseTime string             `json:"close_time"`
+	Date      openapi_types.Date `json:"date"`
+	IsOpen    *bool              `json:"is_open,omitempty"`
+	Name      string             `json:"name"`
+	OpenTime  string             `json:"open_time"`
+	StationId int64              `gorm:"primaryKey" json:"station_id"`
 }
 
 // Station defines model for Station.
@@ -97,6 +109,9 @@ type UpdateUserJSONRequestBody = User
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Get the schedule for all stations with their current status
+	// (GET /schedule)
+	GetSchedule(w http.ResponseWriter, r *http.Request)
 	// Get all stations
 	// (GET /stations)
 	GetStations(w http.ResponseWriter, r *http.Request)
@@ -120,6 +135,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// Get the schedule for all stations with their current status
+// (GET /schedule)
+func (_ Unimplemented) GetSchedule(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Get all stations
 // (GET /stations)
@@ -165,6 +186,21 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetSchedule operation middleware
+func (siw *ServerInterfaceWrapper) GetSchedule(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSchedule(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
 
 // GetStations operation middleware
 func (siw *ServerInterfaceWrapper) GetStations(w http.ResponseWriter, r *http.Request) {
@@ -403,6 +439,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/schedule", wrapper.GetSchedule)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/stations", wrapper.GetStations)
 	})
 	r.Group(func(r chi.Router) {
@@ -422,6 +461,40 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 
 	return r
+}
+
+type GetScheduleRequestObject struct {
+}
+
+type GetScheduleResponseObject interface {
+	VisitGetScheduleResponse(w http.ResponseWriter) error
+}
+
+type GetSchedule200JSONResponse []SchedulePoint
+
+func (response GetSchedule200JSONResponse) VisitGetScheduleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchedule401JSONResponse ApiError
+
+func (response GetSchedule401JSONResponse) VisitGetScheduleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchedule500JSONResponse ApiError
+
+func (response GetSchedule500JSONResponse) VisitGetScheduleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type GetStationsRequestObject struct {
@@ -680,6 +753,9 @@ func (response UpdateUser500JSONResponse) VisitUpdateUserResponse(w http.Respons
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Get the schedule for all stations with their current status
+	// (GET /schedule)
+	GetSchedule(ctx context.Context, request GetScheduleRequestObject) (GetScheduleResponseObject, error)
 	// Get all stations
 	// (GET /stations)
 	GetStations(ctx context.Context, request GetStationsRequestObject) (GetStationsResponseObject, error)
@@ -727,6 +803,30 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// GetSchedule operation middleware
+func (sh *strictHandler) GetSchedule(w http.ResponseWriter, r *http.Request) {
+	var request GetScheduleRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSchedule(ctx, request.(GetScheduleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSchedule")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetScheduleResponseObject); ok {
+		if err := validResponse.VisitGetScheduleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetStations operation middleware
@@ -903,26 +1003,27 @@ func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, id i
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xYX2/bNhD/KgQ3YC/ynyzJ0GlP7rIOQbemWJanITBo82yxkHgaeUriBvruA0lJsWTF",
-	"cbrZDZC9ybrj/fv97o7yPZ9jlqMGTZbH99zOE8iEf5zk6hdj0Ljn3GAOhhR4SQbWiiW4R1rlwGNuySi9",
-	"5GUZcQN/F8qA5PFfjeJ1VCvi7BPMiZcRvyRBCvWmdSGlAWt7rEdcQgoEcirIie8GSxx8sqgHaqnRAI/J",
-	"FBCF99XZJZpseBaOTYg7IYpcDeYoYQl6AHdkxIDE0jt02jz2fmNSGVgSWc5uFSXM/WSfUcNPSku487kq",
-	"6Q4t0GQuIK40/XDCm1yVJliC2dFnblQmzOo9rLxpLTLoLYENdZs6pGSReiVFkHlb3xpY8Jh/M3pAdVRB",
-	"OqoKflmfK5tAhTFi1bJNggr7bMvh1IbdDimU5FV6UYP1FoJcruXZJso8RQtTh0sLBf8i6uGOoLaiezF4",
-	"THuP0GIOevewa0xCQBLs3Kg8dA7/MwF2fsZwwSgBZiAVBJJVJ3j0H4Vf872D41pgVXHXU4vW4dkGb0O1",
-	"Nrh7rL+yUxfnWnfNEFMQ+mWVO+K3CeipBZrOVtPCgtmVvduAqpPvsd6H0lXltg3OCxvDLZR6RiZkQqW9",
-	"koUylqaPzto9kjAV2xznCep+icEwCkEXmQN3IjPl0PwDcjTUQvEROngaeDOt/NdDqktWB9Iu8SZPfFfp",
-	"BW62zOTjOVugYZnQYqn0ks1SRMkkas/JunksE1oyx0I7dAVW5LLkb73yWa08+XjOI34DxgbjR8PxcMyr",
-	"iSpyxWN+PBwPj13cghJf/VHtwUMBtBnir0BMpGkTShhjxv84l0Hh8kFmwOaobWiE78djv4lQE2hvW+R5",
-	"quZee+R64uFS9dx12rNIu1znF++d1sn46FlRbHPe3Pp6vF1pUVCCRn0G6fyePjP7L/VbCyJui8w1UT9q",
-	"oeGaecev3YkG/9G9kqUfZUUPCa5yN0/XZnmbAkF82UhzYUQGBMY57Nqq1Nj5mZu37o1jY33piasGbDoy",
-	"DMuHKj01bsryOhwHS29Rrp4FQWfJ2otqEbYz+AC3LNwBffNWVfnOMtdoleQhsGZ7dgbNmq/+kdGuQfkv",
-	"e2unlnq8hQ5I5eHXatrK8fFBHL9DM1NSgq68nhzE6wck9g4LXed6ehCvvwMlKJlzPklTvG1K/eOBWXV6",
-	"YB63ZvLGEO2fyH7NP7mOg1bPLr6qBPtfxP7y+/8W3mEL12DVgIfvCXeRRduD8c8GHFG8VhfhILsKoi9d",
-	"c0+jusv+OdqDz75CyNdKnzYPOuRpRkVzcwufnZt0Ct+V/XQKsopOW69tTmfPd7bNgdUTQvVxPXytpGij",
-	"uTlRtlzfexkQZC+EAV9znI33Ps5e7yJsE7A7yZwqmJuadYVJecwTotzyMuqy8Deci5RJuIEU8ww0sXCW",
-	"R2sH49EodXoJWorfjN+MueNX5bdr8aLuB8vEDAta/2iu2G2b/xyePFzv+uqkz7G8Lv8JAAD//5E15tVK",
-	"GgAA",
+	"H4sIAAAAAAAC/+xY3W/bNhD/VwhuwF7kj67N0GlP7rIOQbcmWJanIjBo82yxkEiNPCVxA//vAz8k6yuO",
+	"k9RugPTNFu+Ld7/f3Um3dK6yXEmQaGh8S808gYy5n5Nc/KG10vZ3rlUOGgW4kwyMYUuwP3GVA42pQS3k",
+	"kq7XEdXwXyE0cBp/qgQvo1JQzT7DHOk6oufzBHiRwpkSErs+GOcajOnxEdF5qgxMUWQuhIXSGUMaU/cg",
+	"6opzhk1B96BHUJipykHWfM6USoFJeyhZBr3RWJXdgzHIUCg5FbwhLiT+8mYjLyTCEjSN6M1AsVwM5orD",
+	"EuQAblCzAbKly8xS6YzGNNciY3r1AVZ03S5BzV+4Q1TlNiozsblCI7m9ZfP2HlYwDikg8Clzhb4ZLNXg",
+	"s1FyIJZSaaAx6gIi/zzo2psNj73aBHfMg9WNbeQGWZaTa4EJsX/JFyXhNyE53DiI7i33W1BS1sEE2Fsh",
+	"gZA5Wz9qWNCY/jDakHEUmDgKCS/pYm0F40xrtmrYRoaFebBlr9Wx2wJSH4C2AOS8ds8mUL4Gewd3Se+x",
+	"tE/hOQcz1yL3zKH/JkBOjolaEEyAaEgZAidBg0ZfKfwS79sawqP5f15BrVncPeZ/a3d+PumO6HUCcmoA",
+	"p7PVtDCgd0XvtkKVl++x3leli+C2WZxn1oYbVeppmZAxkfaeLIQ2OL2z1+4RhCnb5jhPlOw/0cq3QpBF",
+	"Zos74Zmw1fwHcqWxUcU74OBg4Mw07l8PqUxZGUgzxV2cOFbJhepSZnJ2QhZKk4xJthRySWapUpxwJR0m",
+	"S/IYwiQnFoVmaBMs0N6SvnPCx6Xw5OyERvQKtPHGXw3Hw3G5ObFc0Ji+Ho6Hr23cDBOX/VF9Ti4BuyH+",
+	"Cej4XAq6eFmabmLzwEtAaDIvtAaJJExI51o7sRPubVXzymbd5Eoaz5mfx2M3tJRE8Hsqy/NUzJ3yyNJn",
+	"szbvPnkbu2938rbJQU8/WKk341cPimVbCNV23+PtQrICE6XFF+DW79EDc/BYv+VBRE2RWdY9ucyezJ9o",
+	"haZLa31U6m4FV91JL2I2ZwdATJhW37FyD1ZaVasAEPLXrP/oVvC1m5NFDwgucjusa4tCEwL++Lw6zZlm",
+	"GSBo67BtK4iRk2M7zO0T2+rKjToO3b1q934Sb7J03yxbry+9Ohh8p/jqQSVobXDmNGxZzRt8hOvAK0fB",
+	"kJWfDLFdvMa41mrWmmI1X/3zqJmD9RO5tROl7qbQAaE8/FakDY5fH8Txe6VngnOQweubg3j9qJC8V4Us",
+	"73p0EK9/AyaKE+t8kqbqukr1rwdG1dGBcdzoyZ0m2t+R3Q557zj2Uj2z+CIc7H8Quzer71N4hylcFqss",
+	"uH9ZtW9JyvTU+HcNFihOql1hf3bhjx475u6v6i7z59UefPYlgr9U+DRx0AJP1Sqqzc1/0+jCyX+06IeT",
+	"Pwtw2rq2WZk972zdhtUTQvhyM3ypoGhWs9tRtqzvvQjwZ88EAd+ynY333s5e7iBsArDdyawo6KsSdYVO",
+	"aUwTxNzQddRG4V9qzlLC4QpSlWfuE4fTpVFNMR6NUiuXKIPx2/HbMbX4Cn7bFk9LPhjCZqrA+ktzQLep",
+	"vjncq1zO+qDp7ri+XP8fAAD//2NJcfReHgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

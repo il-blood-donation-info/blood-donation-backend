@@ -8,15 +8,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"time"
-	"github.com/davecgh/go-spew/spew"
 	"strings"
+	"time"
 )
 
 const customDateLayout = "2006-01-02"
@@ -51,7 +51,7 @@ type Doer interface {
 }
 
 func init() {
-    // This will ensure that initDb is called only once
+	//This will ensure that initDb is called only once
 	log.Println("Call init function in mada file")
 	initDb()
 }
@@ -138,13 +138,13 @@ func ScrapeMada() ([]DonationDetail, error) {
 	return donationDetails, nil
 }
 
-func initDb()error{
-    log.Println("Initializing the database...")
+func initDb() error {
+	log.Println("Initializing the database...")
 
-    if dbManager  != nil{
-        log.Println("Db already initialised, exiting initDb")
-        return nil
-    }
+	if dbManager != nil {
+		log.Println("Db already initialised, exiting initDb")
+		return nil
+	}
 
 	//Remove duplicate connection-DB code, new file for main server and scraper?
 	// Get PostgreSQL connection details from environment variables
@@ -157,57 +157,59 @@ func initDb()error{
 	// Construct the connection string
 	connectionString := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbHost, dbPort, dbUser, dbName, dbPassword)
 
+	fmt.Printf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbHost, dbPort, dbUser, dbName, dbPassword)
+
 	// Connect to the PostgreSQL database
 	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
-        return err
+		return err
 	}
 
 	err = db.AutoMigrate(&bloodinfo.Station{})
 	if err != nil {
-        log.Println("Error during database migration:", err)
+		log.Println("Error during database migration:", err)
 		log.Fatal(err)
-        return err
+		return err
 	}
 
 	err = db.AutoMigrate(&bloodinfo.StationStatus{})
 	if err != nil {
-        log.Println("Error during database migration:", err)
+		log.Println("Error during database migration:", err)
 		log.Fatal(err)
-        return err
+		return err
 	}
 
 	err = db.AutoMigrate(&bloodinfo.StationSchedule{})
 	if err != nil {
-        log.Println("Error during database migration:", err)
+		log.Println("Error during database migration:", err)
 		log.Fatal(err)
-        return err
+		return err
 	}
 
-    dbManager = &DBManager{DB: db}
+	dbManager = &DBManager{DB: db}
 
-    log.Println("Database successfully initialised")
-    return nil
+	log.Println("Database successfully initialised")
+	return nil
 }
 
 func closeDbConnection() {
-    // Close the database connection
-    if dbManager != nil {
-        sqlDB, err := dbManager.DB.DB()
-        if err != nil {
-            log.Fatal(err)
-        }
-        sqlDB.Close()
-        log.Println("Database connection closed")
-    }
+	// Close the database connection
+	if dbManager != nil {
+		sqlDB, err := dbManager.DB.DB()
+		if err != nil {
+			log.Fatal(err)
+		}
+		sqlDB.Close()
+		log.Println("Database connection closed")
+	}
 }
 
 func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
-    stationName := strings.TrimSpace(d.Name)
-    stationAddress := strings.TrimSpace(fmt.Sprintf("%s %s %s", strings.TrimSpace(d.City), strings.TrimSpace(d.NumHouse), strings.TrimSpace(d.Street)))
+	stationName := strings.TrimSpace(d.Name)
+	stationAddress := strings.TrimSpace(fmt.Sprintf("%s %s %s", strings.TrimSpace(d.City), strings.TrimSpace(d.NumHouse), strings.TrimSpace(d.Street)))
 
-    log.Println("Convert  data for " + stationName)
+	log.Println("Convert  data for " + stationName)
 	existingStation, err := findStationByName(stationName)
 
 	if err != nil {
@@ -223,20 +225,20 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 
 	// If the station exists, add the new schedule to its StationSchedules
 	if existingStation != nil {
-	    log.Println("Station already exist %", existingStation.Id)
+		log.Println("Station already exist %", existingStation.Id)
 
-        // Check if StationSchedule is nil, and initialize it with an empty slice if necessary
-        if existingStation.StationSchedule == nil {
-            existingStation.StationSchedule = &[]bloodinfo.StationSchedule{}
-        }
+		// Check if StationSchedule is nil, and initialize it with an empty slice if necessary
+		if existingStation.StationSchedule == nil {
+			existingStation.StationSchedule = &[]bloodinfo.StationSchedule{}
+		}
 
-        // Append the new schedule to StationSchedules
-        *existingStation.StationSchedule = append(*existingStation.StationSchedule, stationSchedule)
+		// Append the new schedule to StationSchedules
+		*existingStation.StationSchedule = append(*existingStation.StationSchedule, stationSchedule)
 
 		return *existingStation
 	}
 
-    log.Println("Station does not exist, need to create it")
+	log.Println("Station does not exist, need to create it")
 	// If the station doesn't exist, create a new one
 	station := bloodinfo.Station{
 		Address:         stationAddress,
@@ -245,45 +247,43 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 		StationStatus:   &[]bloodinfo.StationStatus{},
 	}
 
-
-    log.Println("Creating " + station.Name)
-    result := dbManager.DB.Create(&station)
-    if result.Error != nil {
-        log.Fatal(result.Error)
-    }
+	log.Println("Creating " + station.Name)
+	result := dbManager.DB.Create(&station)
+	if result.Error != nil {
+		log.Fatal(result.Error)
+	}
 
 	return station
 }
 
 func SaveData(donationDetails []DonationDetail) error {
 	//todo : Clean DB before adding ? Filter for adding just stations for today ?
-    log.Println("Beginning of SaveData")
+	log.Println("Beginning of SaveData")
 
-    var resultStations []bloodinfo.Station
-
+	var resultStations []bloodinfo.Station
 
 	for _, donation := range donationDetails {
 		station := ConvertDonationToStation(donation)
-	    log.Printf("station: %+v", station)
+		log.Printf("station: %+v", station)
 
-        existingIndex := findStationIndexByName(resultStations, station.Name)
+		existingIndex := findStationIndexByName(resultStations, station.Name)
 
-        if existingIndex != -1 {
-            // Concatenate the StationSchedules for stations with the same name
-            resultStations[existingIndex].StationSchedule = concatenateSchedules(resultStations[existingIndex].StationSchedule, station.StationSchedule)
-        } else {
-            resultStations = append(resultStations, station)
-        }
+		if existingIndex != -1 {
+			// Concatenate the StationSchedules for stations with the same name
+			resultStations[existingIndex].StationSchedule = concatenateSchedules(resultStations[existingIndex].StationSchedule, station.StationSchedule)
+		} else {
+			resultStations = append(resultStations, station)
+		}
 	}
 
-    spew.Dump(resultStations)
+	spew.Dump(resultStations)
 
 	fmt.Println("Bulk insert completed successfully.")
 	return nil
 }
 
 func findStationByName(name string) (*bloodinfo.Station, error) {
-    log.Println("Finding station by name:", name)  // Add this line
+	log.Println("Finding station by name:", name) // Add this line
 
 	var station bloodinfo.Station
 	result := dbManager.DB.Where("name = ?", name).First(&station)
@@ -301,23 +301,23 @@ func findStationByName(name string) (*bloodinfo.Station, error) {
 
 // findStationIndexByName finds the index of a station with the given name in the list
 func findStationIndexByName(stations []bloodinfo.Station, name string) int {
-    for i, station := range stations {
-        if station.Name == name {
-            return i
-        }
-    }
-    return -1
+	for i, station := range stations {
+		if station.Name == name {
+			return i
+		}
+	}
+	return -1
 }
 
 // concatenateSchedules concatenates two StationSchedule arrays
 func concatenateSchedules(schedule1 *[]bloodinfo.StationSchedule, schedule2 *[]bloodinfo.StationSchedule) *[]bloodinfo.StationSchedule {
-    if schedule1 == nil {
-        return schedule2
-    }
-    if schedule2 == nil {
-        return schedule1
-    }
+	if schedule1 == nil {
+		return schedule2
+	}
+	if schedule2 == nil {
+		return schedule1
+	}
 
-    concatenated := append(*schedule1, *schedule2...)
-    return &concatenated
+	concatenated := append(*schedule1, *schedule2...)
+	return &concatenated
 }

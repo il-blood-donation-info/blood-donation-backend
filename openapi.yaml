@@ -14,6 +14,34 @@ tags:
     description: Operations about users
 
 paths:
+  /schedule:
+    get:
+      summary: Get the schedule for all stations with their current status
+      description: Get the schedule for all stations with their current status
+      operationId: getSchedule
+      tags:
+        - schedule
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SchedulePoint"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /stations:
     get:
       summary: Get all stations
@@ -290,6 +318,37 @@ components:
           x-go-json-ignore: true
           x-oapi-codegen-extra-tags:
             gorm: "type:timestamp with time zone;index"
+
+    SchedulePoint:
+      type: object
+      required:
+        - station_id
+        - name
+        - address
+        - date
+        - open_time
+        - close_time
+      properties:
+        station_id:
+          type: integer
+          format: int64
+          x-oapi-codegen-extra-tags:
+            gorm: "primaryKey"
+        name:
+          type: string
+        address:
+          type: string
+        date:
+          type: string
+          format: date
+        open_time:
+          type: string
+          format: time
+        close_time:
+          type: string
+          format: time
+        is_open:
+          type: boolean
 
     Station:
       type: object

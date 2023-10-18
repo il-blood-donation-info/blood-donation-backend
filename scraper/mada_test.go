@@ -10,12 +10,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 )
 
 import (
 	"net/http"
 )
+
+var setupDone sync.Once
 
 // Mock HTTP client
 type MockHTTPClient struct {
@@ -28,8 +31,13 @@ var (
 )
 
 func setupDatabase() *gorm.DB {
-	dsn := "host=localhost user=youruser password=yourpassword dbname=yourdbname_test sslmode=disable"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbName := os.Getenv("DB_NAME")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	connectionString := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbHost, dbPort, dbUser, dbName, dbPassword)
+	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect to test database")
 	}
@@ -68,6 +76,7 @@ func ResetMocks() {
 }
 
 func TestScrapeMada(t *testing.T) {
+	setupDone.Do(SetupTests)
 	ResetMocks()
 
 	MockClient.DoFunc = func(*http.Request) (*http.Response, error) {
@@ -106,23 +115,29 @@ func TestScrapeMada(t *testing.T) {
 		t.Fatal("Received empty response from Mada")
 	}
 
-	//SaveData(madaResponse)
+	SaveData(madaResponse)
+	schedule, err := bloodinfo.GetStationsFullSchedule(dbManager.DB)
+	if err != nil {
+		t.Fatalf("Failed to get schedule Mada: %s", err)
+	}
+	fmt.Println(schedule)
 }
 
 func TestScraper2DB(t *testing.T) {
-    defer closeDbConnection()
+	defer closeDbConnection()
+	setupDone.Do(SetupTests)
 	madaResponse, err := ScrapeMada()
 	if err != nil {
 		t.Fatalf("Failed to scrape Mada: %s", err)
 	}
 
-// 	for _, result := range madaResponse {
-// 		fmt.Printf("Name: %s\n", result.Name)
-// 		fmt.Printf("Address: %s %s %s\n", result.City, result.Street, result.NumHouse)
-// 		fmt.Printf("Open Time: %s\n", result.FromHour)
-// 		fmt.Printf("Close Time: %s\n\n", result.ToHour)
-// 		fmt.Printf("Datetime : %s\n\n", result.DateDonation)
-// 	}
+	// 	for _, result := range madaResponse {
+	// 		fmt.Printf("Name: %s\n", result.Name)
+	// 		fmt.Printf("Address: %s %s %s\n", result.City, result.Street, result.NumHouse)
+	// 		fmt.Printf("Open Time: %s\n", result.FromHour)
+	// 		fmt.Printf("Close Time: %s\n\n", result.ToHour)
+	// 		fmt.Printf("Datetime : %s\n\n", result.DateDonation)
+	// 	}
 
 	// Basic check if we got some data
 	if len(madaResponse) == 0 {

@@ -15,6 +15,19 @@ func NewStrictBloodInfoServer(db *gorm.DB) StrictBloodInfoServer {
 	return StrictBloodInfoServer{db: db}
 }
 
+// GetSchedule gets schedule
+func (s StrictBloodInfoServer) GetSchedule(ctx context.Context, request GetStationsRequestObject) (GetScheduleResponseObject, error) {
+	var stationsSchedule []SchedulePoint
+	schedule, err := GetStationsFullSchedule(s.db)
+	stationsSchedule = ConvertToSchedulePoints(schedule)
+	if err != nil {
+		return GetSchedule500JSONResponse{
+			Message: fmt.Sprintf("error getting schedule: %w", err),
+		}, nil
+	}
+	return GetSchedule200JSONResponse(stationsSchedule), nil
+}
+
 // GetStations gets all stations
 func (s StrictBloodInfoServer) GetStations(ctx context.Context, request GetStationsRequestObject) (GetStationsResponseObject, error) {
 	var stations []Station
