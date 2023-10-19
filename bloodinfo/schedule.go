@@ -26,7 +26,7 @@ func ConvertToSchedulePoints(points []StationSchedulePoint) []SchedulePoint {
 			Address:   point.StationAddress,               // This field is not provided in StationSchedulePoint
 			CloseTime: point.CloseTime, // assuming you want HH:MM:SS format
 			Date:      openapi_types.Date{Time: point.Date},
-			IsOpen:    &point.LastStatus,
+			IsOpen:    &point.LastStatus, //SchedulePoint.IsOpen is &, not showing correct value in json
 			Name:      point.StationName,
 			OpenTime:  point.OpenTime, // assuming you want HH:MM:SS format
 			StationId: int64(point.StationID),
@@ -34,16 +34,20 @@ func ConvertToSchedulePoints(points []StationSchedulePoint) []SchedulePoint {
 		schedulePoints = append(schedulePoints, schedulePoint)
 	}
 
+	for _, r := range schedulePoints {
+		fmt.Println(r)
+	}
 	return schedulePoints
 }
 
 func GetStationsFullSchedule(db *gorm.DB) ([]StationSchedulePoint, error) {
 	var schedule []StationSchedulePoint
 
-	subquery := db.Table("station_statuses").
-		Select("is_open, station_schedule_id").
-		Where("DATE(created_at) = DATE(?)", time.Now()).
-		Order("CASE WHEN user_id IS NOT NULL AND user_id > 0 THEN 1 ELSE 0 END DESC, created_at DESC").
+	subquery := db.Table("station_statuses h").
+		Select("h.is_open, h.station_schedule_id").
+		Where("DATE(h.created_at) = CURRENT_DATE").
+		Where("h.station_schedule_id = c.id").
+		Order("CASE WHEN h.user_id IS NOT NULL AND h.user_id > 0 THEN 1 ELSE 0 END DESC, h.created_at DESC").
 		Limit(1)
 
 	db.Table("stations s").
@@ -53,12 +57,13 @@ func GetStationsFullSchedule(db *gorm.DB) ([]StationSchedulePoint, error) {
 			"c.date as date, " +
 			"c.open_time as open_time, " +
 			"c.close_time as close_time, " +
-			"COALESCE(t.is_open, false) as last_status").
+			"t.is_open as last_status").
 		Joins("LEFT JOIN station_schedules c ON c.station_id = s.id").
-		Joins("LEFT JOIN (?) as t ON t.station_schedule_id = c.id", subquery).
+		Joins("LEFT JOIN LATERAL (?) as t ON t.station_schedule_id = c.id", subquery).
 		Group("s.id, c.id, t.is_open").
-		Order("c.date ASC").
+		Order("s.id, c.date ASC").
 		Scan(&schedule)
+	//todo : Don't show past scheduled?
 
 	for _, r := range schedule {
 		fmt.Println(r)

@@ -131,21 +131,9 @@ func TestScraper2DB(t *testing.T) {
 		t.Fatal("Received empty response from Mada")
 	}
 
-	// For testing purpose: Delete all records in DB. SaveData is creating all data for now (stations & schedules)
-	err = dbManager.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&bloodinfo.Station{}).Error
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = dbManager.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&bloodinfo.StationSchedule{}).Error
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = dbManager.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&bloodinfo.StationStatus{}).Error
-	if err != nil {
-		log.Fatal(err)
-	}
-
-
 	log.Println("SaveData")
-	SaveData(madaResponse)
+	err = SaveData(madaResponse)
+	if err != nil {
+		t.Fatalf("Failed to SaveData: %s", err)
+	}
 }

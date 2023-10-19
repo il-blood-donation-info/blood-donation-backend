@@ -19,7 +19,6 @@ import (
 )
 
 const customDateLayout = "2006-01-02"
-const customDateTimeLayout = "2006-01-02 15:04"
 
 var dbManager *DBManager
 
@@ -52,7 +51,11 @@ type Doer interface {
 func init() {
 	//This will ensure that initDb is called only once
 	log.Println("Call init function in mada file")
-	initDb()
+
+	err := initDb()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (d *DonationDetail) UnmarshalJSON(data []byte) error {
@@ -199,7 +202,10 @@ func closeDbConnection() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		sqlDB.Close()
+		err = sqlDB.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 		log.Println("Database connection closed")
 	}
 }
@@ -222,17 +228,22 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 		CloseTime: d.ToHour,
 	}
 
+	today := time.Now()
+	var stationScheduleIsPertinent =  stationSchedule.Date.Year() > today.Year() || (stationSchedule.Date.Year() == today.Year() && stationSchedule.Date.YearDay() >= today.YearDay())
+
+
 	// If the station exists, add the new schedule to its StationSchedules
 	if existingStation != nil {
-		log.Println("Station already exist %", existingStation.Id)
+		log.Println("Station already exist ", existingStation.Id)
 
 		// Check if StationSchedule is nil, and initialize it with an empty slice if necessary
-		if existingStation.StationSchedule == nil {
-			existingStation.StationSchedule = &[]bloodinfo.StationSchedule{}
+		if stationScheduleIsPertinent{
+			if existingStation.StationSchedule == nil {
+				existingStation.StationSchedule = &[]bloodinfo.StationSchedule{}
+			}
+			// Append the new schedule to StationSchedules
+			*existingStation.StationSchedule = append(*existingStation.StationSchedule, stationSchedule)
 		}
-
-		// Append the new schedule to StationSchedules
-		*existingStation.StationSchedule = append(*existingStation.StationSchedule, stationSchedule)
 
 		return *existingStation
 	}
@@ -242,7 +253,9 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 	station := bloodinfo.Station{
 		Address:         stationAddress,
 		Name:            stationName,
-		StationSchedule: &[]bloodinfo.StationSchedule{stationSchedule},
+	}
+	if stationScheduleIsPertinent{
+		station.StationSchedule = &[]bloodinfo.StationSchedule{stationSchedule}
 	}
 
 	return station
@@ -256,7 +269,6 @@ func SaveData(donationDetails []DonationDetail) error {
 
 	for _, donation := range donationDetails {
 		station := ConvertDonationToStation(donation)
-		log.Printf("station: %+v", station)
 
 		existingIndex := findStationIndexByName(resultStations, station.Name)
 
@@ -268,16 +280,85 @@ func SaveData(donationDetails []DonationDetail) error {
 		}
 	}
 
+
 	//For testing purpose: All the stations & all associated scheduled are created
 	for _, station := range resultStations {
-		log.Println("Creating " + station.Name)
-		result := dbManager.DB.Create(&station)
-		if result.Error != nil {
-			log.Fatal(result.Error)
+		tx := dbManager.DB.Begin()
+
+		log.Printf("station: %+v", station)
+		log.Println("Handling " + station.Name)
+
+		// Handle station schedules: it's already >= today
+		for i := range *station.StationSchedule {
+			schedule := &(*station.StationSchedule)[i]
+
+			log.Println("Checking schedule ", schedule.Date, schedule.OpenTime, schedule.CloseTime)
+
+			// Check if the schedule exists in the database
+			schedule.StationId = station.Id
+			existingSchedule, err := findSchedule(*schedule)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if existingSchedule == nil{
+				if isToday(*schedule){
+					log.Println("Schedule not existing, and is today: is_open = true")
+					stationStatus := bloodinfo.StationStatus{
+						IsOpen: true,
+						CreatedAt: time.Now(),
+					}
+					schedule.StationStatus = &[]bloodinfo.StationStatus{stationStatus}
+					log.Printf("schedule: %+v", schedule)
+				}
+			}else{
+				schedule.Id = existingSchedule.Id
+			}
 		}
+
+		log.Printf("station: %+v", station)
+		log.Printf("stationSchedule: %+v", station.StationSchedule)
+		for _, schedule := range *station.StationSchedule {
+			log.Printf("schedule: %+v", schedule)
+			if schedule.StationStatus != nil{
+				for _, status := range *schedule.StationStatus {
+					log.Printf("status: %+v", status)
+				}
+			}
+		}
+		if station.Id == 0 {
+			// Station does not exist, create it
+			log.Println("Create")
+			if err := tx.Create(&station).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		} else {
+			// Station already exists, update it
+			log.Println("Update")
+			if err := tx.Save(&station).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+		tx.Commit()
+
+		log.Printf("station: %+v", station)
+		log.Printf("stationSchedule: %+v", station.StationSchedule)
+		for _, schedule := range *station.StationSchedule {
+			log.Printf("schedule: %+v", schedule)
+			if schedule.StationStatus != nil{
+				for _, status := range *schedule.StationStatus {
+					log.Printf("status: %+v", status)
+				}
+			}
+		}
+
 	}
 
 	fmt.Println("Bulk insert completed successfully.")
+
 	return nil
 }
 
@@ -308,6 +389,24 @@ func findStationIndexByName(stations []bloodinfo.Station, name string) int {
 	return -1
 }
 
+func findSchedule(schedule bloodinfo.StationSchedule) (*bloodinfo.StationSchedule, error) {
+	var foundSchedule bloodinfo.StationSchedule
+
+	result := dbManager.DB.Where("date = ? AND open_time = ? AND close_time = ? AND station_id = ?",
+		schedule.Date, schedule.OpenTime, schedule.CloseTime, schedule.StationId).
+		First(&foundSchedule)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			// Schedule not found
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+
+	return &foundSchedule, nil
+}
+
 // concatenateSchedules concatenates two StationSchedule arrays
 func concatenateSchedules(schedule1 *[]bloodinfo.StationSchedule, schedule2 *[]bloodinfo.StationSchedule) *[]bloodinfo.StationSchedule {
 	if schedule1 == nil {
@@ -319,4 +418,15 @@ func concatenateSchedules(schedule1 *[]bloodinfo.StationSchedule, schedule2 *[]b
 
 	concatenated := append(*schedule1, *schedule2...)
 	return &concatenated
+}
+
+func isToday(schedule bloodinfo.StationSchedule) bool {
+	// Get the current date
+	currentDate := time.Now().UTC().Truncate(24 * time.Hour)
+
+	// Truncate the time part from the schedule date
+	scheduleDate := schedule.Date.UTC().Truncate(24 * time.Hour)
+
+	// Compare the truncated dates
+	return scheduleDate.Equal(currentDate)
 }
