@@ -43,7 +43,7 @@ func GetStationsFullSchedule(db *gorm.DB) ([]StationSchedulePoint, error) {
 	subquery := db.Table("station_statuses").
 		Select("is_open, station_schedule_id").
 		Where("DATE(created_at) = DATE(?)", time.Now()).
-		Order("user_id DESC, created_at DESC").
+		Order("CASE WHEN user_id IS NOT NULL AND user_id > 0 THEN 1 ELSE 0 END DESC, created_at DESC").
 		Limit(1)
 
 	db.Table("stations s").
