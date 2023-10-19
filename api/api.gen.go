@@ -23,6 +23,10 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	BearerAuthScopes = "BearerAuth.Scopes"
+)
+
 // Defines values for UserRole.
 const (
 	Admin    UserRole = "Admin"
@@ -150,6 +154,8 @@ type MiddlewareFunc func(http.Handler) http.Handler
 func (siw *ServerInterfaceWrapper) GetStations(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetStations(w, r)
 	}))
@@ -176,6 +182,8 @@ func (siw *ServerInterfaceWrapper) UpdateStation(w http.ResponseWriter, r *http.
 		return
 	}
 
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateStation(w, r, id)
 	}))
@@ -191,6 +199,8 @@ func (siw *ServerInterfaceWrapper) UpdateStation(w http.ResponseWriter, r *http.
 func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetUsers(w, r)
 	}))
@@ -205,6 +215,8 @@ func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Reque
 // CreateUser operation middleware
 func (siw *ServerInterfaceWrapper) CreateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateUser(w, r)
@@ -232,6 +244,8 @@ func (siw *ServerInterfaceWrapper) DeleteUser(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteUser(w, r, id)
 	}))
@@ -257,6 +271,8 @@ func (siw *ServerInterfaceWrapper) UpdateUser(w http.ResponseWriter, r *http.Req
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
 		return
 	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateUser(w, r, id)
@@ -883,24 +899,25 @@ func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, id i
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xYX2/bNhD/KgI3YC/yny7OsGlP7rIOQbemWOCnwgho8yyzkHgceUriBvruA0lJtizV",
-	"STrYLZA9Rdb95d3vfkflgS0x16hAkWXJA7PLNeTcP061/N0YNO5ZG9RgSIKX5GAtT8E90kYDS5glI1XK",
-	"yjJmBv4ppAHBkg+N4jyuFXHxEZbEyphdEyeJquudC2HA2h7vMVtmaOGGZO6Dr9DknFjCBCcY+Ldx10ZA",
-	"BgTixmk+sPtBioOPFtVApgoNsIRMAXF4X9mmaPLhRTCbEnNC5FoOliggBTWAezJ8QDz1STptlvi4icvB",
-	"Es91dCdpHbmf0SdU8KtUAu59faRopS4V/TTZpi0VQQrmiTG1kTk3m7ewCa7tDWpQO5VbIGbAlSuD4jn0",
-	"1tSZPKuke02WglXe46Z3u15bXdsm2YeJmYUeuH1jDRRgl0bqGrydekLOZdYrWUlj6eazjTgiMjJ+KLBe",
-	"o+qXGMy8AFSRu15PRS4Vi9nfoNEQmJ0uHkKHd9M6/25KdcnqRNol7uLEQ12tMGBjpxls+v4yWqGJcq54",
-	"KlUaLTJEEQlUnmsiGzjHRlyJqLBg7NAVWJI7JXvtlS9q5en7SxazWzA2OH81HA/H9cBwLVnCzobj4ZnL",
-	"m9PaV39UR/CtAOqm+AdQxLOsSSWMivE/LkVQuN7KDFiNyoZB+HE8dn+WqAiU9821zuTSa4/cTGwp3D1J",
-	"gtwbfm9gxRL23WhL9qOK6Uc1D5dNnbkxfBPK3M796q3TmoxfPSuLQ8GbHdMTbaZ4QWs08hMIF/f8maf/",
-	"0ri1IGa2yN0Q9XctDNwHVr1ic2fR9H/0IEXpqazoAcFMO3qtvXUgEMTXjVRzw3MgMC7gvq9KLbq8cOTq",
-	"3jg01pScVAPYTGQgy22VHqObspwHc7D0GsXmWS1o87i0V9V2ap/gHdz5UhTWD29VlR9s5AatkmwTa1ba",
-	"HtHsxOqnjHYNyv84W08aqc+P0AmhPPxaQ1sFPjtJ4DdoFlIIUFXUyUmivkOK3mCh6rOenyTqX0BrFJEL",
-	"Ps0yvGtK/cuJUXV+Yhy3OLlDov2M7Nf8o+s4aPXs4lklOP4i9pff/7fwE7Zw3ay64e43m7uLLNqeHv9m",
-	"wAHFa+13OMhmQfSla+7xrj5l/7w6Qsy+QoiXCp82DvbA01BFc3MLn51dOIXvyn44BVkFp4PXNqdz5Dtb",
-	"l7B6Uqg+rocvFRTtbnYZ5cD1vRcBQfaNIOBr0tn46HT2chdhG4D7TOZUwdz2o+5PXPIsEnALGeocFEVB",
-	"l8WsMBlL2JpI22Q0ypziGi0lP08mZ8wBqgq07/KqHgAb8QUWtPuVXMHZNv9keNS4Xu6VpT9UOS//DQAA",
-	"//8yztfnqRYAAA==",
+	"H4sIAAAAAAAC/+xYX2/jNgz/KoY2YC/On67tsHlP6boO3W3Xw7piD0VQKBbr6GCLGiW3zRX+7oMk24lj",
+	"X//c0NwBvadEJkVS5I8/yr5nKRYaFShrWHLPTLqEgvu/My1/JUJy/zWhBrISvKQAY3gG7q9daWAJM5ak",
+	"ylhVxYzg31ISCJZctorzuFHExXtILatidm65laj61rkQBMYMWI9ZmqOBKysL7/waqeCWJUxwCyP/NO7v",
+	"EZCDBXHlNO/Z3SjD0XuDaiQzhQQssVRCHJ7XezOkYnwcts0sc0LkWo5SFJCBGsGdJT6yPPNBOm2WeL+J",
+	"i8FYXujoVtpl5JbRB1Tws1QC7nx+pOiELpX94WAdtlQWMqAn+tQkC06rN7AKps0ValAbmVsg5sCVS4Pi",
+	"BQzm1G15Vkq3iiwFq63Hbe02rXaqtg5yCBMXBgbg9oUVUIBJSeoGvL18QsFlPii5lmTs1UcL8YLIyPlD",
+	"jvUS1bCEMPcCUGXhaj0ThVQsZn+BRrJAG1V8CB3eTOf8myE1KWsC6aa4j5MqZgbSkqRdnTu6Cig5Ak5A",
+	"s9Iu3WrhVydNLn//528WB3LzbeGl69wurdWs8i2krjFgbqPIbPbuNLpGigqueCZVFi1yRBEJVJ7DIhO4",
+	"zERciag0QGbsjEvrsseOvPJxozx7d8pidgNkgvG98XQ8bRqRa8kStj+ejvddPrhd+sNNGg++xGD7If4G",
+	"NuJ53oYSWpD84lQEhfO1jMBoVCak7vvp1P2kqCwob5trncvUa09cr61Hg/snLRR+47cE1yxh30zWQ2RS",
+	"T5BJw+9Vm2VOxFchzd3Yz944rYPp3rOieMh5O7sGvF0oXtolkvwAwvk9fObpP9VvI4iZKQvXnMNVC418",
+	"yepHbO52tPWf3EtReYosB0BwoR1tN9Z6EAji81aqOfECLJBzuG2rVotOjx1puycOjQ3VJ3Vjt50eSHid",
+	"pcdorKrmYTsYe4Ri9awSdOeDNGf11Oue4C3c+lSUxjdvnZXvTOQarZasA2tH5RaBbfgaoKJqOwfV/+yt",
+	"J7XUx1toh1Aef66mrR3v78TxCdJCCgGq9nqwE69v0UYnWKrmrIc78fon2CWKyDmf5Tnetqn+aceoOtwx",
+	"jjuc3CPRYUb2Y/7RcRy0BmbxRS14+UHsL9Vfp/ATpnBTrKbgbs3m7oKMZqDGvxA4oHit7QoH2UUQfeqY",
+	"e7yqT5k/ey/gcygR4rXCp4uDLfC0VNHe3MLrbB9O4X11GE5BVsPpwWub03nhO1ufsAZCqF/ax68VFN1q",
+	"9hnlgev7IAKC7AtBwOeks+mL09nrHYRdAG4z2cZ3Fw+7zS8ul3OHDAN0MwzKPzDleSTgBnLUBSgbBV0W",
+	"s5Ly+hOMSSaT3Cku0djkx4ODfeas1nFsmzxr+sNEfIGl3XyJrtFu2m8Qj25uZn+905+5mlf/BQAA///F",
+	"wg8CIBcAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

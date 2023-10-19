@@ -3,10 +3,13 @@ package main
 import (
 	"blood-donation-backend/api"
 	"blood-donation-backend/server"
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/jwtauth/v5"
 	middleware "github.com/oapi-codegen/nethttp-middleware"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -15,6 +18,17 @@ import (
 	"net/http"
 	"os"
 )
+
+var tokenAuth *jwtauth.JWTAuth
+
+func init() {
+	tokenAuth = jwtauth.New("HS256", []byte("secret"), nil)
+
+	// For debugging/example purposes, we generate and print
+	// a sample jwt token with claims `user_id:123` here:
+	_, tokenString, _ := tokenAuth.Encode(map[string]interface{}{"user_id": 123})
+	fmt.Printf("DEBUG: a sample jwt is %s\n\n", tokenString)
+}
 
 func main() {
 	var err error
@@ -58,7 +72,23 @@ func main() {
 	strictHandler := api.NewStrictHandler(strictBloodInfoServer, nil)
 
 	r := chi.NewRouter()
-	r.Use(middleware.OapiRequestValidator(swagger))
+	// Seek, verify and validate JWT tokens
+	r.Use(jwtauth.Verifier(tokenAuth))
+
+	// Handle valid / invalid tokens. In this example, we use
+	// the provided authenticator middleware, but you can write your
+	// own very easily, look at the Authenticator method in jwtauth.go
+	// and tweak it, its not scary.
+	r.Use(jwtauth.Authenticator)
+
+	validatorOptions := &middleware.Options{}
+
+	validatorOptions.Options.AuthenticationFunc = func(c context.Context, input *openapi3filter.AuthenticationInput) error {
+		fmt.Println(">>>> INSIDE AuthenticationFunc")
+		return nil
+	}
+	r.Use(middleware.OapiRequestValidatorWithOptions(swagger, validatorOptions))
+
 	api.HandlerFromMux(strictHandler, r)
 	s := &http.Server{
 		Handler: r,
