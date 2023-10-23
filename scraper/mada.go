@@ -214,7 +214,7 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 	stationName := strings.TrimSpace(d.Name)
 	stationAddress := strings.TrimSpace(fmt.Sprintf("%s %s %s", strings.TrimSpace(d.City), strings.TrimSpace(d.NumHouse), strings.TrimSpace(d.Street)))
 
-	log.Println("Convert  data for " + stationName)
+	//log.Println("Convert  data for " + stationName)
 	existingStation, err := findStationByName(stationName)
 
 	if err != nil {
@@ -229,15 +229,14 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 	}
 
 	today := time.Now()
-	var stationScheduleIsPertinent =  stationSchedule.Date.Year() > today.Year() || (stationSchedule.Date.Year() == today.Year() && stationSchedule.Date.YearDay() >= today.YearDay())
-
+	var stationScheduleIsPertinent = stationSchedule.Date.Year() > today.Year() || (stationSchedule.Date.Year() == today.Year() && stationSchedule.Date.YearDay() >= today.YearDay())
 
 	// If the station exists, add the new schedule to its StationSchedules
 	if existingStation != nil {
-		log.Println("Station already exist ", existingStation.Id)
+		//log.Println("Station already exist ", existingStation.Id)
 
 		// Check if StationSchedule is nil, and initialize it with an empty slice if necessary
-		if stationScheduleIsPertinent{
+		if stationScheduleIsPertinent {
 			if existingStation.StationSchedule == nil {
 				existingStation.StationSchedule = &[]bloodinfo.StationSchedule{}
 			}
@@ -251,10 +250,10 @@ func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
 	log.Println("Station does not exist, need to create it")
 	// If the station doesn't exist, create a new one
 	station := bloodinfo.Station{
-		Address:         stationAddress,
-		Name:            stationName,
+		Address: stationAddress,
+		Name:    stationName,
 	}
-	if stationScheduleIsPertinent{
+	if stationScheduleIsPertinent {
 		station.StationSchedule = &[]bloodinfo.StationSchedule{stationSchedule}
 	}
 
@@ -280,19 +279,18 @@ func SaveData(donationDetails []DonationDetail) error {
 		}
 	}
 
-
 	//For testing purpose: All the stations & all associated scheduled are created
 	for _, station := range resultStations {
 		tx := dbManager.DB.Begin()
 
-		log.Printf("station: %+v", station)
-		log.Println("Handling " + station.Name)
+		//log.Printf("station: %+v", station)
+		//log.Println("Handling " + station.Name)
 
 		// Handle station schedules: it's already >= today
 		for i := range *station.StationSchedule {
 			schedule := &(*station.StationSchedule)[i]
 
-			log.Println("Checking schedule ", schedule.Date, schedule.OpenTime, schedule.CloseTime)
+			//log.Println("Checking schedule ", schedule.Date, schedule.OpenTime, schedule.CloseTime)
 
 			// Check if the schedule exists in the database
 			schedule.StationId = station.Id
@@ -302,41 +300,41 @@ func SaveData(donationDetails []DonationDetail) error {
 				return err
 			}
 
-			if existingSchedule == nil{
-				if isToday(*schedule){
-					log.Println("Schedule not existing, and is today: is_open = true")
+			if existingSchedule == nil {
+				if isToday(*schedule) {
+					//log.Println("Schedule not existing, and is today: is_open = true")
 					stationStatus := bloodinfo.StationStatus{
-						IsOpen: true,
+						IsOpen:    true,
 						CreatedAt: time.Now(),
 					}
 					schedule.StationStatus = &[]bloodinfo.StationStatus{stationStatus}
-					log.Printf("schedule: %+v", schedule)
+					//log.Printf("schedule: %+v", schedule)
 				}
-			}else{
+			} else {
 				schedule.Id = existingSchedule.Id
 			}
 		}
 
-		log.Printf("station: %+v", station)
-		log.Printf("stationSchedule: %+v", station.StationSchedule)
-		for _, schedule := range *station.StationSchedule {
-			log.Printf("schedule: %+v", schedule)
-			if schedule.StationStatus != nil{
-				for _, status := range *schedule.StationStatus {
-					log.Printf("status: %+v", status)
-				}
-			}
-		}
+		//log.Printf("station: %+v", station)
+		//log.Printf("stationSchedule: %+v", station.StationSchedule)
+		//for _, schedule := range *station.StationSchedule {
+		//log.Printf("schedule: %+v", schedule)
+		//if schedule.StationStatus != nil {
+		//for _, status := range *schedule.StationStatus {
+		//log.Printf("status: %+v", status)
+		//}
+		//}
+		//}
 		if station.Id == 0 {
 			// Station does not exist, create it
-			log.Println("Create")
+			//log.Println("Create")
 			if err := tx.Create(&station).Error; err != nil {
 				tx.Rollback()
 				return err
 			}
 		} else {
 			// Station already exists, update it
-			log.Println("Update")
+			//log.Println("Update")
 			if err := tx.Save(&station).Error; err != nil {
 				tx.Rollback()
 				return err
@@ -344,16 +342,16 @@ func SaveData(donationDetails []DonationDetail) error {
 		}
 		tx.Commit()
 
-		log.Printf("station: %+v", station)
-		log.Printf("stationSchedule: %+v", station.StationSchedule)
-		for _, schedule := range *station.StationSchedule {
-			log.Printf("schedule: %+v", schedule)
-			if schedule.StationStatus != nil{
-				for _, status := range *schedule.StationStatus {
-					log.Printf("status: %+v", status)
-				}
-			}
-		}
+		//log.Printf("station: %+v", station)
+		//log.Printf("stationSchedule: %+v", station.StationSchedule)
+		//for _, schedule := range *station.StationSchedule {
+		//	//log.Printf("schedule: %+v", schedule)
+		//	if schedule.StationStatus != nil {
+		//		for _, status := range *schedule.StationStatus {
+		//			//log.Printf("status: %+v", status)
+		//		}
+		//	}
+		//}
 
 	}
 
@@ -363,7 +361,7 @@ func SaveData(donationDetails []DonationDetail) error {
 }
 
 func findStationByName(name string) (*bloodinfo.Station, error) {
-	log.Println("Finding station by name:", name) // Add this line
+	//log.Println("Finding station by name:", name) // Add this line
 
 	var station bloodinfo.Station
 	result := dbManager.DB.Where("name = ?", name).First(&station)

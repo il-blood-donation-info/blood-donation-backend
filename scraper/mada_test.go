@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 )
 
 import (
@@ -106,17 +107,34 @@ func TestScrapeMada(t *testing.T) {
 	if len(madaResponse) == 0 {
 		t.Fatal("Received empty response from Mada")
 	}
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	today := time.Date(2023, 10, 18, 0, 0, 0, 0, time.UTC)
+	oneDayBefore := today.AddDate(0, 0, -1)
+	s := bloodinfo.NewScheduler(bloodinfo.WithSinceDate(today))
+	schedule, err := s.GetStationsFullSchedule(dbManager.DB)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	bloodinfo.GetStationsFullSchedule(dbManager.DB)
+	scheduledYesterday := schedule.FilterByDate(oneDayBefore)
+	if len(scheduledYesterday) > 0 {
+		t.Fatal("no yesterday dates should be present in schedule")
+	}
 
-//	SaveData(madaResponse)
-//	schedule, err := bloodinfo.GetStationsFullSchedule(dbManager.DB)
-//	if err != nil {
-//		t.Fatalf("Failed to get schedule Mada: %s", err)
-//	}
-//	fmt.Println(schedule)
+	todaySchedule := schedule.FilterByDate(today)
+	if len(todaySchedule) != 8 {
+		t.Fatal(fmt.Sprintf("today should have ## schedule points, has: %d", len(todaySchedule)))
+	}
+
+	//spew.Dump(s.GetStationsFullSchedule(dbManager.DB))
+
+	//	SaveData(madaResponse)
+	//	schedule, err := bloodinfo.GetStationsFullSchedule(dbManager.DB)
+	//	if err != nil {
+	//		t.Fatalf("Failed to get schedule Mada: %s", err)
+	//	}
+	//	fmt.Println(schedule)
 }
-
 
 func TestScraper2DB(t *testing.T) {
 	defer closeDbConnection()

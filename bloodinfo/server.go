@@ -8,7 +8,8 @@ import (
 
 // StrictBloodInfoServer implements StrictServerInterface
 type StrictBloodInfoServer struct {
-	db *gorm.DB
+	db        *gorm.DB
+	scheduler Scheduler
 }
 
 func NewStrictBloodInfoServer(db *gorm.DB) StrictBloodInfoServer {
@@ -18,7 +19,7 @@ func NewStrictBloodInfoServer(db *gorm.DB) StrictBloodInfoServer {
 // GetSchedule gets schedule
 func (s StrictBloodInfoServer) GetSchedule(ctx context.Context, request GetScheduleRequestObject) (GetScheduleResponseObject, error) {
 	var stationsSchedule []SchedulePoint
-	schedule, err := GetStationsFullSchedule(s.db)
+	schedule, err := s.scheduler.GetStationsFullSchedule(s.db)
 	stationsSchedule = ConvertToSchedulePoints(schedule)
 	if err != nil {
 		return GetSchedule500JSONResponse{
