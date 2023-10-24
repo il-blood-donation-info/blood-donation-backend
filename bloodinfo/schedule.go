@@ -87,7 +87,7 @@ func (s *Scheduler) GetStationsFullSchedule(db *gorm.DB) (Schedule, error) {
 
 	subquery := db.Table("station_statuses h").
 		Select("h.is_open, h.station_schedule_id").
-		Where(fmt.Sprintf("DATE(h.created_at) = '%s'", s.SinceDate.Format("2006-01-02"))).
+//		Where(fmt.Sprintf("DATE(h.created_at) = '%s'", s.SinceDate.Format("2006-01-02"))). // Do we realy need to filter out statuses based on created date ?
 		Where("h.station_schedule_id = c.id").
 		Order("CASE WHEN h.user_id IS NOT NULL AND h.user_id > 0 THEN 1 ELSE 0 END DESC, h.created_at DESC").
 		Limit(1)
@@ -99,7 +99,7 @@ func (s *Scheduler) GetStationsFullSchedule(db *gorm.DB) (Schedule, error) {
 			"c.date as date, "+
 			"c.open_time as open_time, "+
 			"c.close_time as close_time, "+
-			"t.is_open as last_status").
+			"t.is_open as last_status"). //Dont we need to differenciate true / false and not defined ?
 		Joins("LEFT JOIN station_schedules c ON c.station_id = s.id").
 		Joins("LEFT JOIN LATERAL (?) as t ON t.station_schedule_id = c.id", subquery).
 		Where(fmt.Sprintf("date >= '%s'", s.SinceDate.Format("2006-01-02"))).
@@ -108,9 +108,9 @@ func (s *Scheduler) GetStationsFullSchedule(db *gorm.DB) (Schedule, error) {
 		Scan(&schedule)
 	//todo : Don't show past scheduled?
 
-	//for _, r := range schedule {
-	//	fmt.Println(r)
-	//}
+//	for _, r := range schedule {
+//		fmt.Println(r)
+//	}
 
 	return schedule, nil
 }

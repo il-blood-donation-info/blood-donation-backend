@@ -6,7 +6,6 @@ import (
 	"blood-donation-backend/bloodinfo"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -49,9 +48,6 @@ type Doer interface {
 }
 
 func init() {
-	//This will ensure that initDb is called only once
-	log.Println("Call init function in mada file")
-
 	err := initDb()
 	if err != nil {
 		log.Fatal(err)
@@ -142,24 +138,19 @@ func ScrapeMada() ([]DonationDetail, error) {
 
 func initDb() error {
 	log.Println("Initializing the database...")
-
 	if dbManager != nil {
 		log.Println("Db already initialised, exiting initDb")
 		return nil
 	}
 
 	//Remove duplicate connection-DB code, new file for main server and scraper?
-	// Get PostgreSQL connection details from environment variables
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 	dbUser := os.Getenv("DB_USER")
 	dbName := os.Getenv("DB_NAME")
 	dbPassword := os.Getenv("DB_PASSWORD")
 
-	// Construct the connection string
 	connectionString := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbHost, dbPort, dbUser, dbName, dbPassword)
-
-	fmt.Printf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbHost, dbPort, dbUser, dbName, dbPassword)
 
 	// Connect to the PostgreSQL database
 	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
@@ -168,21 +159,7 @@ func initDb() error {
 		return err
 	}
 
-	err = db.AutoMigrate(&bloodinfo.Station{})
-	if err != nil {
-		log.Println("Error during database migration:", err)
-		log.Fatal(err)
-		return err
-	}
-
-	err = db.AutoMigrate(&bloodinfo.StationStatus{})
-	if err != nil {
-		log.Println("Error during database migration:", err)
-		log.Fatal(err)
-		return err
-	}
-
-	err = db.AutoMigrate(&bloodinfo.StationSchedule{})
+	err = db.AutoMigrate(&bloodinfo.Station{}, &bloodinfo.StationStatus{}, &bloodinfo.StationSchedule{})
 	if err != nil {
 		log.Println("Error during database migration:", err)
 		log.Fatal(err)
@@ -210,221 +187,113 @@ func closeDbConnection() {
 	}
 }
 
-func ConvertDonationToStation(d DonationDetail) bloodinfo.Station {
-	stationName := strings.TrimSpace(d.Name)
-	stationAddress := strings.TrimSpace(fmt.Sprintf("%s %s %s", strings.TrimSpace(d.City), strings.TrimSpace(d.NumHouse), strings.TrimSpace(d.Street)))
-
-	//log.Println("Convert  data for " + stationName)
-	existingStation, err := findStationByName(stationName)
-
-	if err != nil {
-		// Handle the error
-		log.Fatal(err)
-	}
-
-	stationSchedule := bloodinfo.StationSchedule{
-		Date:      d.DateDonation,
-		OpenTime:  d.FromHour,
-		CloseTime: d.ToHour,
-	}
-
-	today := time.Now()
-	var stationScheduleIsPertinent = stationSchedule.Date.Year() > today.Year() || (stationSchedule.Date.Year() == today.Year() && stationSchedule.Date.YearDay() >= today.YearDay())
-
-	// If the station exists, add the new schedule to its StationSchedules
-	if existingStation != nil {
-		//log.Println("Station already exist ", existingStation.Id)
-
-		// Check if StationSchedule is nil, and initialize it with an empty slice if necessary
-		if stationScheduleIsPertinent {
-			if existingStation.StationSchedule == nil {
-				existingStation.StationSchedule = &[]bloodinfo.StationSchedule{}
-			}
-			// Append the new schedule to StationSchedules
-			*existingStation.StationSchedule = append(*existingStation.StationSchedule, stationSchedule)
-		}
-
-		return *existingStation
-	}
-
-	log.Println("Station does not exist, need to create it")
-	// If the station doesn't exist, create a new one
-	station := bloodinfo.Station{
-		Address: stationAddress,
-		Name:    stationName,
-	}
-	if stationScheduleIsPertinent {
-		station.StationSchedule = &[]bloodinfo.StationSchedule{stationSchedule}
-	}
-
-	return station
-}
-
 func SaveData(donationDetails []DonationDetail) error {
-	//todo : Clean DB before adding ? Filter for adding just stations for today ?
-	log.Println("Beginning of SaveData")
-
-	var resultStations []bloodinfo.Station
-
-	for _, donation := range donationDetails {
-		station := ConvertDonationToStation(donation)
-
-		existingIndex := findStationIndexByName(resultStations, station.Name)
-
-		if existingIndex != -1 {
-			// Concatenate the StationSchedules for stations with the same name
-			resultStations[existingIndex].StationSchedule = concatenateSchedules(resultStations[existingIndex].StationSchedule, station.StationSchedule)
-		} else {
-			resultStations = append(resultStations, station)
+	tx := dbManager.DB.Begin()
+	if tx.Error != nil {
+		return tx.Error // Check for an error when starting the transaction
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback() // Rollback the transaction in case of a panic
 		}
+	}()
+
+	err := processDonationDetails(tx, donationDetails)
+	if err != nil {
+		tx.Rollback() // Rollback the transaction if an error occurs
+		return err
 	}
 
-	//For testing purpose: All the stations & all associated scheduled are created
-	for _, station := range resultStations {
-		tx := dbManager.DB.Begin()
-
-		//log.Printf("station: %+v", station)
-		//log.Println("Handling " + station.Name)
-
-		// Handle station schedules: it's already >= today
-		for i := range *station.StationSchedule {
-			schedule := &(*station.StationSchedule)[i]
-
-			//log.Println("Checking schedule ", schedule.Date, schedule.OpenTime, schedule.CloseTime)
-
-			// Check if the schedule exists in the database
-			schedule.StationId = station.Id
-			existingSchedule, err := findSchedule(*schedule)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-
-			if existingSchedule == nil {
-				if isToday(*schedule) {
-					//log.Println("Schedule not existing, and is today: is_open = true")
-					stationStatus := bloodinfo.StationStatus{
-						IsOpen:    true,
-						CreatedAt: time.Now(),
-					}
-					schedule.StationStatus = &[]bloodinfo.StationStatus{stationStatus}
-					//log.Printf("schedule: %+v", schedule)
-				}
-			} else {
-				schedule.Id = existingSchedule.Id
-			}
-		}
-
-		//log.Printf("station: %+v", station)
-		//log.Printf("stationSchedule: %+v", station.StationSchedule)
-		//for _, schedule := range *station.StationSchedule {
-		//log.Printf("schedule: %+v", schedule)
-		//if schedule.StationStatus != nil {
-		//for _, status := range *schedule.StationStatus {
-		//log.Printf("status: %+v", status)
-		//}
-		//}
-		//}
-		if station.Id == 0 {
-			// Station does not exist, create it
-			//log.Println("Create")
-			if err := tx.Create(&station).Error; err != nil {
-				tx.Rollback()
-				return err
-			}
-		} else {
-			// Station already exists, update it
-			//log.Println("Update")
-			if err := tx.Save(&station).Error; err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
-		tx.Commit()
-
-		//log.Printf("station: %+v", station)
-		//log.Printf("stationSchedule: %+v", station.StationSchedule)
-		//for _, schedule := range *station.StationSchedule {
-		//	//log.Printf("schedule: %+v", schedule)
-		//	if schedule.StationStatus != nil {
-		//		for _, status := range *schedule.StationStatus {
-		//			//log.Printf("status: %+v", status)
-		//		}
-		//	}
-		//}
-
-	}
-
-	fmt.Println("Bulk insert completed successfully.")
-
+	tx.Commit() // Commit the transaction if no errors occurred
 	return nil
 }
 
-func findStationByName(name string) (*bloodinfo.Station, error) {
-	//log.Println("Finding station by name:", name) // Add this line
+func processDonationDetails(tx *gorm.DB, donationDetails []DonationDetail) error {
+	var schedulesIds []int64
+	for _, donation := range donationDetails {
+		stationName := strings.TrimSpace(donation.Name)
+		stationAddress := strings.TrimSpace(fmt.Sprintf("%s %s %s", strings.TrimSpace(donation.City), strings.TrimSpace(donation.NumHouse), strings.TrimSpace(donation.Street)))
 
-	var station bloodinfo.Station
-	result := dbManager.DB.Where("name = ?", name).First(&station)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			// Station not found
-			return nil, nil
+		var station = bloodinfo.Station{}
+		if err := tx.FirstOrInit(&station, bloodinfo.Station{Name: stationName}).Error; err != nil {
+			log.Printf("Error while fetching or initializing station: %v", err)
+			return err
 		}
-		// Handle other errors
-		log.Fatal(result.Error)
-		return nil, result.Error
-	}
-	return &station, nil
-}
+		station.Address = stationAddress
 
-// findStationIndexByName finds the index of a station with the given name in the list
-func findStationIndexByName(stations []bloodinfo.Station, name string) int {
-	for i, station := range stations {
-		if station.Name == name {
-			return i
+		if !isDatePassed(donation.DateDonation) {
+			var schedule = bloodinfo.StationSchedule{}
+			if err := tx.FirstOrInit(&schedule, bloodinfo.StationSchedule{
+				Date:      donation.DateDonation,
+				OpenTime:  donation.FromHour,
+				CloseTime: donation.ToHour,
+			}).Error; err != nil {
+				log.Printf("Error while fetching or initializing schedule: %v", err)
+				return err
+			}
+
+			if schedule.Id == nil && isScheduleToday(schedule) {
+				schedule.StationStatus = &[]bloodinfo.StationStatus{{IsOpen: true}}
+			}
+
+			if station.StationSchedule == nil {
+				station.StationSchedule = &[]bloodinfo.StationSchedule{schedule}
+			} else {
+				*station.StationSchedule = append(*station.StationSchedule, schedule)
+			}
+		}
+
+		//Gorm save station, schedule, and status at this point. That's why we are taking schedule.Id only after.
+		if err := tx.Save(&station).Error; err != nil {
+			log.Printf("Error while saving station: %v", err)
+			return err
+		}
+
+		if station.StationSchedule != nil {
+			for _, schedule := range *station.StationSchedule {
+				if schedule.Id != nil {
+					schedulesIds = append(schedulesIds, *schedule.Id)
+				}
+			}
 		}
 	}
-	return -1
-}
 
-func findSchedule(schedule bloodinfo.StationSchedule) (*bloodinfo.StationSchedule, error) {
-	var foundSchedule bloodinfo.StationSchedule
-
-	result := dbManager.DB.Where("date = ? AND open_time = ? AND close_time = ? AND station_id = ?",
-		schedule.Date, schedule.OpenTime, schedule.CloseTime, schedule.StationId).
-		First(&foundSchedule)
-
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			// Schedule not found
-			return nil, nil
+	var otherSchedules []bloodinfo.StationSchedule
+	if err := tx.Not("id", schedulesIds).Find(&otherSchedules).Error; err != nil {
+		log.Printf("Error while searching other schedules: %v", err)
+		return err
+	}
+	for _, schedule := range otherSchedules {
+		if isScheduleToday(schedule) {
+			lastStatus := bloodinfo.StationStatus{}
+			if err := tx.Where("station_schedule_id = ? AND user_id IS NULL", schedule.Id).Order("created_at DESC").First(&lastStatus).Error; err != nil {
+				log.Printf("Error while searching status: %v", err)
+				return err
+			}
+			if lastStatus.Id == nil || lastStatus.IsOpen {
+				schedule.StationStatus = &[]bloodinfo.StationStatus{{IsOpen: false}}
+				if err := tx.Save(&schedule).Error; err != nil {
+					log.Printf("Error while saving status: %v", err)
+					return err
+				}
+			}
+		} else if !isDatePassed(schedule.Date) {
+			if err := tx.Delete(&schedule).Error; err != nil {
+				log.Printf("Error while deleting schedule: %v", err)
+				return err
+			}
 		}
-		return nil, result.Error
 	}
-
-	return &foundSchedule, nil
+	return nil
 }
 
-// concatenateSchedules concatenates two StationSchedule arrays
-func concatenateSchedules(schedule1 *[]bloodinfo.StationSchedule, schedule2 *[]bloodinfo.StationSchedule) *[]bloodinfo.StationSchedule {
-	if schedule1 == nil {
-		return schedule2
-	}
-	if schedule2 == nil {
-		return schedule1
-	}
-
-	concatenated := append(*schedule1, *schedule2...)
-	return &concatenated
-}
-
-func isToday(schedule bloodinfo.StationSchedule) bool {
-	// Get the current date
+func isScheduleToday(schedule bloodinfo.StationSchedule) bool {
 	currentDate := time.Now().UTC().Truncate(24 * time.Hour)
-
-	// Truncate the time part from the schedule date
 	scheduleDate := schedule.Date.UTC().Truncate(24 * time.Hour)
-
-	// Compare the truncated dates
 	return scheduleDate.Equal(currentDate)
+}
+
+func isDatePassed(date time.Time) bool {
+	today := time.Now()
+	return date.Year() < today.Year() || (date.Year() == today.Year() && date.YearDay() < today.YearDay())
 }
