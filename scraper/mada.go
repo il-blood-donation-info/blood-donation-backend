@@ -209,7 +209,7 @@ func SaveData(donationDetails []DonationDetail) error {
 }
 
 func processDonationDetails(tx *gorm.DB, donationDetails []DonationDetail) error {
-	var schedulesIds []int64
+	schedulesIdsMap := make(map[int64]bool)
 	for _, donation := range donationDetails {
 		stationName := strings.TrimSpace(donation.Name)
 		stationAddress := strings.TrimSpace(fmt.Sprintf("%s %s %s", strings.TrimSpace(donation.City), strings.TrimSpace(donation.NumHouse), strings.TrimSpace(donation.Street)))
@@ -252,14 +252,19 @@ func processDonationDetails(tx *gorm.DB, donationDetails []DonationDetail) error
 		if station.StationSchedule != nil {
 			for _, schedule := range *station.StationSchedule {
 				if schedule.Id != nil {
-					schedulesIds = append(schedulesIds, *schedule.Id)
+					schedulesIdsMap[*schedule.Id] = true
 				}
 			}
 		}
 	}
 
+	var schedulesIds []int64
+	for id := range schedulesIdsMap {
+		schedulesIds = append(schedulesIds, id)
+	}
+
 	var otherSchedules []bloodinfo.StationSchedule
-	if err := tx.Not("id", schedulesIds).Find(&otherSchedules).Error; err != nil {
+	if err := tx.Not("id", schedulesIds).Where("DATE(date) >= CURRENT_DATE").Find(&otherSchedules).Error; err != nil {
 		log.Printf("Error while searching other schedules: %v", err)
 		return err
 	}
