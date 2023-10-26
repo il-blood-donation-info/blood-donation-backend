@@ -24,7 +24,6 @@ _generated.go
 
 # Local configuration files
 *.iml
-*.json
 *.orig
 *.sublime-project
 *.sublime-workspace
