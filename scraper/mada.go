@@ -1,6 +1,4 @@
-// scraper/mada.go
-
-package scraper
+package main
 
 import (
 	"blood-donation-backend/bloodinfo"
@@ -19,9 +17,33 @@ import (
 
 const customDateLayout = "2006-01-02"
 
-var dbManager *DBManager
+func main() {
+	db, err := initDb()
+	defer closeDbConnection(db)
+	if err != nil {
+		panic(err)
+	}
+	madaResponse, err := ScrapeMada()
+	if err != nil {
+		log.Fatalf("Failed to scrape Mada: %s", err)
+	}
 
-type DBManager struct {
+	// Basic check if we got some data
+	if len(madaResponse) == 0 {
+		log.Fatal("Received empty response from Mada")
+	}
+
+	log.Println("SaveData")
+	p := DataWriter{
+		DB: db,
+	}
+	err = p.SaveData(madaResponse)
+	if err != nil {
+		log.Fatalf("Failed to SaveData: %s", err)
+	}
+}
+
+type DataWriter struct {
 	DB *gorm.DB
 }
 
@@ -45,13 +67,6 @@ var Client Doer = &http.Client{}
 
 type Doer interface {
 	Do(req *http.Request) (*http.Response, error)
-}
-
-func init() {
-	err := initDb()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 func (d *DonationDetail) UnmarshalJSON(data []byte) error {
@@ -136,12 +151,8 @@ func ScrapeMada() ([]DonationDetail, error) {
 	return donationDetails, nil
 }
 
-func initDb() error {
+func initDb() (*gorm.DB, error) {
 	log.Println("Initializing the database...")
-	if dbManager != nil {
-		log.Println("Db already initialised, exiting initDb")
-		return nil
-	}
 
 	//Remove duplicate connection-DB code, new file for main server and scraper?
 	dbHost := os.Getenv("DB_HOST")
@@ -156,26 +167,17 @@ func initDb() error {
 	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
-		return err
+		return nil, err
 	}
-
-	err = db.AutoMigrate(&bloodinfo.Station{}, &bloodinfo.StationStatus{}, &bloodinfo.StationSchedule{})
-	if err != nil {
-		log.Println("Error during database migration:", err)
-		log.Fatal(err)
-		return err
-	}
-
-	dbManager = &DBManager{DB: db}
 
 	log.Println("Database successfully initialised")
-	return nil
+	return db, nil
 }
 
-func closeDbConnection() {
+func closeDbConnection(DB *gorm.DB) {
 	// Close the database connection
-	if dbManager != nil {
-		sqlDB, err := dbManager.DB.DB()
+	if DB != nil {
+		sqlDB, err := DB.DB()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -187,8 +189,8 @@ func closeDbConnection() {
 	}
 }
 
-func SaveData(donationDetails []DonationDetail) error {
-	tx := dbManager.DB.Begin()
+func (p DataWriter) SaveData(donationDetails []DonationDetail) error {
+	tx := p.DB.Begin()
 	if tx.Error != nil {
 		return tx.Error // Check for an error when starting the transaction
 	}
@@ -243,7 +245,7 @@ func processDonationDetails(tx *gorm.DB, donationDetails []DonationDetail) error
 			}
 		}
 
-		//Gorm save station, schedule, and status at this point. That's why we are taking schedule.Id only after.
+		//Gorm save station, schedule, and status at this point. That's why we are taking schedule. ID only after.
 		if err := tx.Save(&station).Error; err != nil {
 			log.Printf("Error while saving station: %v", err)
 			return err

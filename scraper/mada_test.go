@@ -1,4 +1,4 @@
-package scraper
+package main
 
 import (
 	"blood-donation-backend/bloodinfo"
@@ -10,7 +10,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 )
@@ -18,8 +17,6 @@ import (
 import (
 	"net/http"
 )
-
-var setupDone sync.Once
 
 // Mock HTTP client
 type MockHTTPClient struct {
@@ -34,36 +31,38 @@ var (
 func setupDatabase() *gorm.DB {
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbName := os.Getenv("DB_NAME")
+	dbUser := os.Getenv("DB_USER_TEST")
+	dbName := os.Getenv("DB_NAME_TEST")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	connectionString := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbHost, dbPort, dbUser, dbName, dbPassword)
+
 	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect to test database")
 	}
+	err = db.AutoMigrate(&bloodinfo.User{}, &bloodinfo.Station{}, &bloodinfo.StationStatus{}, &bloodinfo.StationSchedule{})
+	if err != nil {
+		log.Fatalf("Failed to migrate... %+v", err)
+	}
 	return db
 }
 
-func SetupTests() {
-	db := setupDatabase()
-	// AutoMigrate will create the tables based on the struct definitions
-	err := db.AutoMigrate(&bloodinfo.User{})
+//export DB_HOST=localhost
+//export DB_PORT=5432
+//export DB_USER_TEST=postgres
+//export DB_NAME_TEST=bloodinfo_test
+//export DB_PASSWORD=mada
+
+func teardown(db *gorm.DB) {
+	if db == nil {
+		return
+	}
+	// Perform teardown tasks here
+	err := db.Migrator().DropTable(&bloodinfo.User{}, &bloodinfo.Station{}, &bloodinfo.StationStatus{}, &bloodinfo.StationSchedule{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = db.AutoMigrate(&bloodinfo.Station{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = db.AutoMigrate(&bloodinfo.StationStatus{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = db.AutoMigrate(&bloodinfo.StationSchedule{})
-	if err != nil {
-		log.Fatal(err)
-	}
+	closeDbConnection(db)
 }
 
 // Do is the mock client's `Do` function
@@ -77,7 +76,8 @@ func ResetMocks() {
 }
 
 func TestScrapeMada(t *testing.T) {
-	setupDone.Do(SetupTests)
+	db := setupDatabase()
+	defer teardown(db)
 	ResetMocks()
 
 	MockClient.DoFunc = func(*http.Request) (*http.Response, error) {
@@ -107,11 +107,22 @@ func TestScrapeMada(t *testing.T) {
 	if len(madaResponse) == 0 {
 		t.Fatal("Received empty response from Mada")
 	}
+
+	log.Println("SaveData")
+	p := DataWriter{
+		DB: db,
+	}
+	err = p.SaveData(madaResponse)
+	if err != nil {
+		log.Fatalf("Failed to SaveData: %s", err)
+	}
+
+	//after
 	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	today := time.Date(2023, 10, 18, 0, 0, 0, 0, time.UTC)
 	oneDayBefore := today.AddDate(0, 0, -1)
 	s := bloodinfo.NewScheduler(bloodinfo.WithSinceDate(today))
-	schedule, err := s.GetStationsFullSchedule(dbManager.DB)
+	schedule, err := s.GetStationsFullSchedule(db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,34 +135,5 @@ func TestScrapeMada(t *testing.T) {
 	todaySchedule := schedule.FilterByDate(today)
 	if len(todaySchedule) != 8 {
 		t.Fatal(fmt.Sprintf("today should have ## schedule points, has: %d", len(todaySchedule)))
-	}
-
-	//spew.Dump(s.GetStationsFullSchedule(dbManager.DB))
-
-	//	SaveData(madaResponse)
-	//	schedule, err := bloodinfo.GetStationsFullSchedule(dbManager.DB)
-	//	if err != nil {
-	//		t.Fatalf("Failed to get schedule Mada: %s", err)
-	//	}
-	//	fmt.Println(schedule)
-}
-
-func TestScraper2DB(t *testing.T) {
-	defer closeDbConnection()
-	setupDone.Do(SetupTests)
-	madaResponse, err := ScrapeMada()
-	if err != nil {
-		t.Fatalf("Failed to scrape Mada: %s", err)
-	}
-
-	// Basic check if we got some data
-	if len(madaResponse) == 0 {
-		t.Fatal("Received empty response from Mada")
-	}
-
-	log.Println("SaveData")
-	err = SaveData(madaResponse)
-	if err != nil {
-		t.Fatalf("Failed to SaveData: %s", err)
 	}
 }

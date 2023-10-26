@@ -33,19 +33,7 @@ func main() {
 	}
 
 	// AutoMigrate will create the tables based on the struct definitions
-	err = db.AutoMigrate(&bloodinfo.User{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = db.AutoMigrate(&bloodinfo.Station{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = db.AutoMigrate(&bloodinfo.StationStatus{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = db.AutoMigrate(&bloodinfo.StationSchedule{})
+	err = db.AutoMigrate(&bloodinfo.User{}, &bloodinfo.Station{}, &bloodinfo.StationStatus{}, &bloodinfo.StationSchedule{})
 	if err != nil {
 		log.Fatal(err)
 	}
