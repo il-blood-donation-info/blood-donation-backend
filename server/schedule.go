@@ -1,6 +1,7 @@
-package bloodinfo
+package server
 
 import (
+	"blood-donation-backend/api"
 	"fmt"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"gorm.io/gorm"
@@ -18,11 +19,11 @@ type StationSchedulePoint struct {
 }
 
 // TODO: move from here
-func ConvertToSchedulePoints(points []StationSchedulePoint) []SchedulePoint {
-	var schedulePoints []SchedulePoint
+func ConvertToSchedulePoints(points []StationSchedulePoint) []api.SchedulePoint {
+	var schedulePoints []api.SchedulePoint
 
 	for _, point := range points {
-		schedulePoint := SchedulePoint{
+		schedulePoint := api.SchedulePoint{
 			Address:   point.StationAddress, // This field is not provided in StationSchedulePoint
 			CloseTime: point.CloseTime,      // assuming you want HH:MM:SS format
 			Date:      openapi_types.Date{Time: point.Date},

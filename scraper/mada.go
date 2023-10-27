@@ -1,7 +1,7 @@
 package main
 
 import (
-	"blood-donation-backend/bloodinfo"
+	"blood-donation-backend/api"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -216,16 +216,16 @@ func processDonationDetails(tx *gorm.DB, donationDetails []DonationDetail) error
 		stationName := strings.TrimSpace(donation.Name)
 		stationAddress := strings.TrimSpace(fmt.Sprintf("%s %s %s", strings.TrimSpace(donation.City), strings.TrimSpace(donation.NumHouse), strings.TrimSpace(donation.Street)))
 
-		var station = bloodinfo.Station{}
-		if err := tx.FirstOrInit(&station, bloodinfo.Station{Name: stationName}).Error; err != nil {
+		var station = api.Station{}
+		if err := tx.FirstOrInit(&station, api.Station{Name: stationName}).Error; err != nil {
 			log.Printf("Error while fetching or initializing station: %v", err)
 			return err
 		}
 		station.Address = stationAddress
 
 		if !isDatePassed(donation.DateDonation) {
-			var schedule = bloodinfo.StationSchedule{}
-			if err := tx.FirstOrInit(&schedule, bloodinfo.StationSchedule{
+			var schedule = api.StationSchedule{}
+			if err := tx.FirstOrInit(&schedule, api.StationSchedule{
 				Date:      donation.DateDonation,
 				OpenTime:  donation.FromHour,
 				CloseTime: donation.ToHour,
@@ -235,11 +235,11 @@ func processDonationDetails(tx *gorm.DB, donationDetails []DonationDetail) error
 			}
 
 			if schedule.Id == nil && isScheduleToday(schedule) {
-				schedule.StationStatus = &[]bloodinfo.StationStatus{{IsOpen: true}}
+				schedule.StationStatus = &[]api.StationStatus{{IsOpen: true}}
 			}
 
 			if station.StationSchedule == nil {
-				station.StationSchedule = &[]bloodinfo.StationSchedule{schedule}
+				station.StationSchedule = &[]api.StationSchedule{schedule}
 			} else {
 				*station.StationSchedule = append(*station.StationSchedule, schedule)
 			}
@@ -265,20 +265,20 @@ func processDonationDetails(tx *gorm.DB, donationDetails []DonationDetail) error
 		schedulesIds = append(schedulesIds, id)
 	}
 
-	var otherSchedules []bloodinfo.StationSchedule
+	var otherSchedules []api.StationSchedule
 	if err := tx.Not("id", schedulesIds).Where("DATE(date) >= CURRENT_DATE").Find(&otherSchedules).Error; err != nil {
 		log.Printf("Error while searching other schedules: %v", err)
 		return err
 	}
 	for _, schedule := range otherSchedules {
 		if isScheduleToday(schedule) {
-			lastStatus := bloodinfo.StationStatus{}
+			lastStatus := api.StationStatus{}
 			if err := tx.Where("station_schedule_id = ? AND user_id IS NULL", schedule.Id).Order("created_at DESC").First(&lastStatus).Error; err != nil {
 				log.Printf("Error while searching status: %v", err)
 				return err
 			}
 			if lastStatus.Id == nil || lastStatus.IsOpen {
-				schedule.StationStatus = &[]bloodinfo.StationStatus{{IsOpen: false}}
+				schedule.StationStatus = &[]api.StationStatus{{IsOpen: false}}
 				if err := tx.Save(&schedule).Error; err != nil {
 					log.Printf("Error while saving status: %v", err)
 					return err
@@ -294,7 +294,7 @@ func processDonationDetails(tx *gorm.DB, donationDetails []DonationDetail) error
 	return nil
 }
 
-func isScheduleToday(schedule bloodinfo.StationSchedule) bool {
+func isScheduleToday(schedule api.StationSchedule) bool {
 	currentDate := time.Now().UTC().Truncate(24 * time.Hour)
 	scheduleDate := schedule.Date.UTC().Truncate(24 * time.Hour)
 	return scheduleDate.Equal(currentDate)

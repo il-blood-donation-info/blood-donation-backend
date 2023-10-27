@@ -1,7 +1,8 @@
 package main
 
 import (
-	"blood-donation-backend/bloodinfo"
+	"blood-donation-backend/api"
+	"blood-donation-backend/server"
 	"bytes"
 	"fmt"
 	"gorm.io/driver/postgres"
@@ -40,7 +41,7 @@ func setupDatabase() *gorm.DB {
 	if err != nil {
 		panic("failed to connect to test database")
 	}
-	err = db.AutoMigrate(&bloodinfo.User{}, &bloodinfo.Station{}, &bloodinfo.StationStatus{}, &bloodinfo.StationSchedule{})
+	err = db.AutoMigrate(&api.User{}, &api.Station{}, &api.StationStatus{}, &api.StationSchedule{})
 	if err != nil {
 		log.Fatalf("Failed to migrate... %+v", err)
 	}
@@ -52,7 +53,7 @@ func teardown(db *gorm.DB) {
 		return
 	}
 	// Perform teardown tasks here
-	err := db.Migrator().DropTable(&bloodinfo.User{}, &bloodinfo.Station{}, &bloodinfo.StationStatus{}, &bloodinfo.StationSchedule{})
+	err := db.Migrator().DropTable(&api.User{}, &api.Station{}, &api.StationStatus{}, &api.StationSchedule{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -123,7 +124,7 @@ func TestScrapeMada(t *testing.T) {
 	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	today := time.Date(2023, 10, 18, 0, 0, 0, 0, time.UTC)
 	oneDayBefore := today.AddDate(0, 0, -1)
-	s := bloodinfo.NewScheduler(bloodinfo.WithSinceDate(today))
+	s := server.NewScheduler(server.WithSinceDate(today))
 	schedule, err := s.GetStationsFullSchedule(db)
 	if err != nil {
 		t.Fatal(err)
