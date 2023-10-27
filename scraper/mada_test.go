@@ -47,12 +47,6 @@ func setupDatabase() *gorm.DB {
 	return db
 }
 
-//export DB_HOST=localhost
-//export DB_PORT=5432
-//export DB_USER_TEST=postgres
-//export DB_NAME_TEST=bloodinfo_test
-//export DB_PASSWORD=mada
-
 func teardown(db *gorm.DB) {
 	if db == nil {
 		return
@@ -101,6 +95,14 @@ func TestScrapeMada(t *testing.T) {
 	madaResponse, err := ScrapeMada()
 	if err != nil {
 		t.Fatalf("Failed to scrape Mada: %s", err)
+	}
+
+	for _, result := range madaResponse {
+		fmt.Printf("Name: %s\n", result.Name)
+		fmt.Printf("Address: %s %s %s\n", result.City, result.Street, result.NumHouse)
+		fmt.Printf("Open Time: %s\n", result.FromHour)
+		fmt.Printf("Close Time: %s\n", result.ToHour)
+		fmt.Printf("Datetime : %s\n\n", result.DateDonation)
 	}
 
 	// Basic check if we got some data

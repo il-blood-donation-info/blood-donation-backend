@@ -4,8 +4,7 @@ info:
   description: API for managing blood donation stations and users.
   version: "1.0.0"
 servers:
-  - url: 'https'
-  - url: "http://localhost:8080"
+  - url: "https://localhost:8443"
     description: Local development server
 tags:
   - name: station
