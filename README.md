@@ -86,5 +86,5 @@ EOF
 # Use echo to pass the commands to psql
 echo "$TEST_DB_COMMANDS" | psql -U postgres
 
-go test ./scrapper -v
+go test ./scraper/... -v
 ```
