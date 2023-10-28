@@ -1,7 +1,7 @@
 package server
 
 import (
-	"blood-donation-backend/api"
+	"blood-donation-backend/pkg/api"
 	"context"
 	"fmt"
 	"gorm.io/gorm"

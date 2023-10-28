@@ -1,7 +1,7 @@
 package main
 
 import (
-	"blood-donation-backend/api"
+	"blood-donation-backend/pkg/api"
 	"blood-donation-backend/server"
 	"crypto/tls"
 	"flag"

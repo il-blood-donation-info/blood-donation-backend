@@ -1,7 +1,7 @@
 package server
 
 import (
-	"blood-donation-backend/api"
+	"blood-donation-backend/pkg/api"
 	"fmt"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"gorm.io/gorm"
@@ -50,9 +50,6 @@ type FullScheduleOptions func()
 func WithSinceDate(t time.Time) func(scheduler *Scheduler) {
 	return func(s *Scheduler) {
 		s.SinceDate = t
-		//func() time.Time {
-		//return time.Date(2023, 10, 18, 0, 0, 0, 0, nil)
-		//}
 	}
 }
 func NewScheduler(opts ...func(scheduler *Scheduler)) Scheduler {
@@ -100,7 +97,7 @@ func (s *Scheduler) GetStationsFullSchedule(db *gorm.DB) (Schedule, error) {
 			"c.date as date, "+
 			"c.open_time as open_time, "+
 			"c.close_time as close_time, "+
-			"COALESCE(t.is_open, true) as last_status"). //Dont we need to differenciate true / false and not defined ?
+			"COALESCE(t.is_open, true) as last_status"). //Don't we need to differentiate true / false and not defined ?
 		Joins("LEFT JOIN station_schedules c ON c.station_id = s.id").
 		Joins("LEFT JOIN LATERAL (?) as t ON t.station_schedule_id = c.id", subquery).
 		Where(fmt.Sprintf("date >= '%s'", s.SinceDate.Format("2006-01-02"))).
@@ -108,10 +105,6 @@ func (s *Scheduler) GetStationsFullSchedule(db *gorm.DB) (Schedule, error) {
 		Order("c.date ASC").
 		Scan(&schedule)
 	//todo : Don't show past scheduled?
-
-	for _, r := range schedule {
-		fmt.Println(r)
-	}
 
 	return schedule, nil
 }
