@@ -1,20 +1,5 @@
 version: '3'
 services:
-  scraper:
-    build:
-      context: .
-      dockerfile: cmd/scraper/Dockerfile
-    depends_on:
-      - db
-    restart: on-failure
-    env_file:
-      - config.env
-    healthcheck:
-      test: [ "CMD", "ps -ef | grep -v grep | grep scraper || exit 1" ]
-      interval: 1m30s
-      timeout: 10s
-      retries: 1
-
   db:
     image: postgres
     env_file:
@@ -34,3 +19,12 @@ services:
     env_file:
       - config.env
 
+  scraper:
+    build:
+      context: .
+      dockerfile: cmd/scraper/Dockerfile
+    depends_on:
+      - db
+    restart: always
+    env_file:
+      - config.env

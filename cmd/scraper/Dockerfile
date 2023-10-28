@@ -14,9 +14,12 @@ FROM alpine
 WORKDIR /app
 
 COPY --from=build /app/scraper scraper
+COPY /cmd/scraper/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 RUN addgroup -S gouser && adduser -S gouser -G gouser
 USER gouser
 
 # Command to run the Go application
-CMD ["./scraper"]
+CMD ["./entrypoint.sh"]
+
