@@ -29,7 +29,8 @@ jobs:
         export GOROOT=$(pwd)
         export GO111MODULE="on"
         echo "GOROOT: $GOROOT"
-        go build -v ./cmd/scraper/main.go -o bin/scraper
+        go env
+        go build -v -o bin/scraper ./cmd/scraper/main.go
 
     - name: Build server
       run: go build -v ./cmd/server
