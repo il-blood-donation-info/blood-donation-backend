@@ -6,6 +6,11 @@ services:
       - db.env
     ports:
       - "5432:5432"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   blood-info:
     build:
@@ -14,7 +19,8 @@ services:
     ports:
       - "8443:8443"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: on-failure
     env_file:
       - config.env
@@ -24,7 +30,8 @@ services:
       context: .
       dockerfile: cmd/scraper/Dockerfile
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: always
     env_file:
       - config.env
