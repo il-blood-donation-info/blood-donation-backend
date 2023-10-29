@@ -1,7 +1,7 @@
 package main
 
 import (
-	"blood-donation-backend/pkg/scraper"
+	"github.com/il-blood-donation-info/blood-donation-backend/pkg/scraper"
 	"log"
 	"net/http"
 	"time"

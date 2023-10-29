@@ -1,12 +1,12 @@
 package main
 
 import (
-	"blood-donation-backend/pkg/api"
-	"blood-donation-backend/server"
 	"crypto/tls"
 	"flag"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/il-blood-donation-info/blood-donation-backend/pkg/api"
+	"github.com/il-blood-donation-info/blood-donation-backend/server"
 	middleware "github.com/oapi-codegen/nethttp-middleware"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
