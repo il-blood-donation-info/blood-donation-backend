@@ -4,7 +4,10 @@
 name: Go
 
 on:
-  [push, pull_request]
+  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
 
@@ -14,23 +17,23 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: '1.20'
 
     - name: Build scraper
       run: |
-        echo "Current directory: $(pwd)"
-        echo "Contents of current directory: $(ls)"
+        go env -w GO111MODULE=on
+        #export GOROOT=""
         echo "GOROOT: $GOROOT"
-        GOROOT=$(go env GOROOT)
-        go build -v ./cmd/scraper
+        go env
+        go build -v -o bin/scraper ./cmd/scraper/main.go
 
     - name: Build server
-      run: go build -v ./cmd/server
+      run: go build -v -o bin/server ./cmd/server/main.go
 
     - name: Build cert
-      run: go build -v ./cmd/cert
+      run: go build -v -o bin/tls-self-signed-cert ./cmd/cert
 
 #    - name: Test
 #      run: go test -v ./...
