@@ -23,7 +23,8 @@ jobs:
 
     - name: Build scraper
       run: |
-        export GO111MODULE="on"
+        go env -w GO111MODULE=on
+        #export GOROOT=""
         echo "GOROOT: $GOROOT"
         go env
         go build -v -o bin/scraper ./cmd/scraper/main.go
