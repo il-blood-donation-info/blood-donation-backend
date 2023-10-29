@@ -11,3 +11,6 @@ jobs:
         with:
           compose-file: "docker-compose.yml"
           down-flags: "--volumes --remove-orphans --rmi local"
+          test-container: "blood-info"
+          test-command: "curl  -s -k -X GET https://localhost:8443/stations | jq '. | length'"
+
