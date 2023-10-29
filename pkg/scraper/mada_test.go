@@ -41,6 +41,7 @@ func setupDatabase() *gorm.DB {
 	if err != nil {
 		panic("failed to connect to test database")
 	}
+
 	err = db.AutoMigrate(&api.User{}, &api.Station{}, &api.StationStatus{}, &api.StationSchedule{})
 	if err != nil {
 		log.Fatalf("Failed to migrate... %+v", err)
@@ -127,7 +128,6 @@ func TestScrapeMada(t *testing.T) {
 	if len(scheduledYesterday) > 0 {
 		t.Fatal("no yesterday dates should be present in schedule")
 	}
-
 	todaySchedule := schedule.FilterByDate(today)
 	if len(todaySchedule) != 5 {
 		t.Fatal(fmt.Sprintf("today should have 5 schedule points, has: %d", len(todaySchedule)))

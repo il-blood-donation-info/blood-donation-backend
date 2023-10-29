@@ -49,6 +49,11 @@ func (p ScheduleDataWriter) processDonationDetails(tx *gorm.DB, donationDetails 
 		}
 		station.Address = stationAddress
 
+		if err := tx.Save(&station).Error; err != nil {
+			log.Printf("Error while saving station: %v", err)
+			return err
+		}
+
 		if !p.isDatePassed(donation.DateDonation) {
 			var schedule = api.StationSchedule{}
 			if err := tx.FirstOrInit(&schedule, api.StationSchedule{
@@ -65,24 +70,13 @@ func (p ScheduleDataWriter) processDonationDetails(tx *gorm.DB, donationDetails 
 				schedule.StationStatus = &[]api.StationStatus{{IsOpen: true}}
 			}
 
-			if station.StationSchedule == nil {
-				station.StationSchedule = &[]api.StationSchedule{schedule}
-			} else {
-				*station.StationSchedule = append(*station.StationSchedule, schedule)
+			if err := tx.Save(&schedule).Error; err != nil {
+				log.Printf("Error while saving schedule: %v", err)
+				return err
 			}
-		}
 
-		//Gorm save station, schedule, and status at this point. That's why we are taking schedule. ID only after.
-		if err := tx.Save(&station).Error; err != nil {
-			log.Printf("Error while saving station: %v", err)
-			return err
-		}
-
-		if station.StationSchedule != nil {
-			for _, schedule := range *station.StationSchedule {
-				if schedule.Id != nil {
-					schedulesIdsMap[*schedule.Id] = true
-				}
+			if schedule.Id != nil {
+				schedulesIdsMap[*schedule.Id] = true
 			}
 		}
 	}
@@ -93,7 +87,7 @@ func (p ScheduleDataWriter) processDonationDetails(tx *gorm.DB, donationDetails 
 	}
 
 	var otherSchedules []api.StationSchedule
-	if err := tx.Not("id", schedulesIds).Where("DATE(date) >= CURRENT_DATE").Find(&otherSchedules).Error; err != nil {
+	if err := tx.Not("id", schedulesIds).Where("DATE(date) >= ?", p.SinceTime.Format("2006-01-02")).Find(&otherSchedules).Error; err != nil {
 		log.Printf("Error while searching other schedules: %v", err)
 		return err
 	}
