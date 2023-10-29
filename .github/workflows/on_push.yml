@@ -8,6 +8,10 @@ jobs:
       # need checkout before using docker-compose-action
       - uses: actions/checkout@v3
       - uses: adambirds/docker-compose-action@v1.3.0
+        env:
+          POSTGRES_USER=mada
+          POSTGRES_PASSWORD=mada
+          POSTGRES_DB=bloodinfo
         with:
           compose-file: "docker-compose.yml"
           down-flags: "--volumes --remove-orphans --rmi local"
