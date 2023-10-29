@@ -33,7 +33,7 @@ jobs:
       run: go build -v -o bin/server ./cmd/server/main.go
 
     - name: Build cert
-      run: go build -v ./cmd/cert
+      run: go build -v -o bin/tls-self-signed-cert ./cmd/cert
 
 #    - name: Test
 #      run: go test -v ./...
