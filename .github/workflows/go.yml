@@ -27,6 +27,7 @@ jobs:
         echo "Contents of current directory: $(ls)"
         echo "GOROOT: $GOROOT"
         GOROOT=$(pwd)
+        GO111MODULE="on"
         echo "GOROOT: $GOROOT"
         go build -v ./cmd/scraper
 
