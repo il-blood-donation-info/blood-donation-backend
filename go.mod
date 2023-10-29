@@ -1,9 +1,8 @@
-module blood-donation-backend
+module github.com/il-blood-donation-info/blood-donation-backend
 
 go 1.20
 
 require (
-	github.com/davecgh/go-spew v1.1.1
 	github.com/getkin/kin-openapi v0.120.0
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/oapi-codegen/nethttp-middleware v1.0.1

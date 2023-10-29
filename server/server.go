@@ -1,9 +1,9 @@
 package server
 
 import (
-	"blood-donation-backend/pkg/api"
 	"context"
 	"fmt"
+	"github.com/il-blood-donation-info/blood-donation-backend/pkg/api"
 	"gorm.io/gorm"
 )
 

@@ -1,8 +1,8 @@
 package server
 
 import (
-	"blood-donation-backend/pkg/api"
 	"fmt"
+	"github.com/il-blood-donation-info/blood-donation-backend/pkg/api"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"gorm.io/gorm"
 	"time"
