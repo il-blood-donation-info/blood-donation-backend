@@ -38,3 +38,8 @@ services:
     environment:
       - SCRAPER_INTERVAL=300
 
+  test:
+    build:
+      context: .
+      dockerfile: test/integration/Dockerfile
+
