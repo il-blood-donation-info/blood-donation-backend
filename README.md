@@ -30,12 +30,14 @@ go run main.go
 # Running using docker-compose
 
 ## Building the image and running the containers
+Edit or change the db.env file to your liking. Then, run the following command:
+
 ```bash
-docker-compose up --build
+docker-compose --env_file db.env up --build
 ```
 ## Stopping the containers
 ```bash
-docker-compose down
+docker-compose --env_file db.env down --remove-orphans --volumes --rmi local
 ```
 
 # Testing the API
@@ -65,4 +67,26 @@ curl --cacert ./cert.pem -s -X GET https://localhost:8443/users | jq
     "role": "Admin"
   }
 ]
+```
+
+### Running Scrapper test against real DB
+```bash
+export DB_HOST=localhost
+export DB_PORT=5432
+export DB_USER_TEST=mada_test
+export DB_NAME_TEST=bloodinfo_test
+export DB_PASSWORD=mada
+
+# Create the test database
+TEST_DB_COMMANDS=$(cat <<EOF
+CREATE DATABASE $DB_NAME_TEST;
+CREATE USER $DB_USER_TEST WITH PASSWORD '$DB_PASSWORD';
+GRANT ALL PRIVILEGES ON DATABASE $DB_NAME_TEST TO $DB_USER_TEST;
+EOF
+)
+
+# Use echo to pass the commands to psql
+echo "$TEST_DB_COMMANDS" | psql -U postgres
+
+go test ./scraper/... -v
 ```

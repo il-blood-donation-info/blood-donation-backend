@@ -5,19 +5,20 @@ FROM golang:1.20-alpine as build
 WORKDIR /app
 
 # Copy the source code into the container
-COPY . .
+COPY ../.. .
 
 # Build the Go application
-RUN go build -o blood-info .
+RUN go build -o blood-info cmd/server/main.go
 
 # Generate self-signed certificate
-RUN go build -o tls-self-signed-cert cert/tls-self-signed-cert.go
+RUN go build -o tls-self-signed-cert cmd/cert/tls-self-signed-cert.go
 
 FROM alpine
+RUN apk --no-cache add jq
 WORKDIR /app
 
-COPY --from=build /app/./blood-info blood-info
-COPY --from=build /app/./tls-self-signed-cert tls-self-signed-cert
+COPY --from=build /app/blood-info blood-info
+COPY --from=build /app/tls-self-signed-cert tls-self-signed-cert
 
 # FIXME: This is a hack to get the self-signed certificate to work. There must be a better way.
 RUN ./tls-self-signed-cert

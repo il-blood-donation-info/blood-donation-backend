@@ -1,7 +1,7 @@
 package main
 
 import (
-	"blood-donation-backend/api"
+	"blood-donation-backend/pkg/api"
 	"blood-donation-backend/server"
 	"crypto/tls"
 	"flag"
@@ -39,11 +39,7 @@ func main() {
 	}
 
 	// AutoMigrate will create the tables based on the struct definitions
-	err = db.AutoMigrate(&api.User{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = db.AutoMigrate(&api.Station{})
+	err = db.AutoMigrate(&api.User{}, &api.Station{}, &api.StationStatus{}, &api.StationSchedule{})
 	if err != nil {
 		log.Fatal(err)
 	}

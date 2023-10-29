@@ -2,8 +2,13 @@ name: Build and test application on push
 run-name: ${{ github.actor }} is testing out bloodinfo docker-compose 🚀
 on: [push]
 jobs:
-  Explore-GitHub-Actions:
+
+  build-and-test:
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_USER: mada
+      POSTGRES_PASSWORD: mada
+      POSTGRES_DB: bloodinfo
     steps:
       # need checkout before using docker-compose-action
       - uses: actions/checkout@v3
@@ -11,3 +16,5 @@ jobs:
         with:
           compose-file: "docker-compose.yml"
           down-flags: "--volumes --remove-orphans --rmi local"
+          test-container: "blood-info"
+          test-command: "$(wget -q -O- --no-check-certificate https://localhost:8443/station | jq '. | length') -gt 0"

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"blood-donation-backend/api"
+	"blood-donation-backend/pkg/api"
 	"context"
 	"fmt"
 	"gorm.io/gorm"
@@ -9,11 +9,25 @@ import (
 
 // StrictBloodInfoServer implements StrictServerInterface
 type StrictBloodInfoServer struct {
-	db *gorm.DB
+	db        *gorm.DB
+	scheduler Scheduler
 }
 
 func NewStrictBloodInfoServer(db *gorm.DB) StrictBloodInfoServer {
 	return StrictBloodInfoServer{db: db}
+}
+
+// GetSchedule gets schedule
+func (s StrictBloodInfoServer) GetSchedule(ctx context.Context, request api.GetScheduleRequestObject) (api.GetScheduleResponseObject, error) {
+	var stationsSchedule []api.SchedulePoint
+	schedule, err := s.scheduler.GetStationsFullSchedule(s.db)
+	stationsSchedule = ConvertToSchedulePoints(schedule)
+	if err != nil {
+		return api.GetSchedule500JSONResponse{
+			Message: fmt.Sprintf("error getting schedule: %w", err),
+		}, nil
+	}
+	return api.GetSchedule200JSONResponse(stationsSchedule), nil
 }
 
 // GetStations gets all stations
