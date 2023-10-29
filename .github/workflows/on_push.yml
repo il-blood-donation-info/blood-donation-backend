@@ -2,16 +2,17 @@ name: Build and test application on push
 run-name: ${{ github.actor }} is testing out bloodinfo docker-compose 🚀
 on: [push]
 jobs:
-  Explore-GitHub-Actions:
+
+  build-and-test:
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_USER: mada
+      POSTGRES_PASSWORD: mada
+      POSTGRES_DB: bloodinfo
     steps:
       # need checkout before using docker-compose-action
       - uses: actions/checkout@v3
       - uses: adambirds/docker-compose-action@v1.3.0
-        env:
-          POSTGRES_USER=mada
-          POSTGRES_PASSWORD=mada
-          POSTGRES_DB=bloodinfo
         with:
           compose-file: "docker-compose.yml"
           down-flags: "--volumes --remove-orphans --rmi local"
