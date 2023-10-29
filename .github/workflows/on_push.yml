@@ -1,0 +1,13 @@
+name: Build and test application on push
+run-name: ${{ github.actor }} is testing out bloodinfo docker-compose 🚀
+on: [push]
+jobs:
+  Explore-GitHub-Actions:
+    runs-on: ubuntu-latest
+    steps:
+      # need checkout before using docker-compose-action
+      - uses: actions/checkout@v3
+      - uses: adambirds/docker-compose-action@v1.3.0
+        with:
+          compose-file: "./docker/docker-compose.yml"
+          down-flags: "--volumes --remove-orphans --rmi"
