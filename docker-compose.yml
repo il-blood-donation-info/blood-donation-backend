@@ -28,3 +28,6 @@ services:
     restart: always
     env_file:
       - config.env
+    environment:
+      - SCRAPER_INTERVAL=300
+

@@ -5,21 +5,21 @@ FROM golang:1.20-alpine as build
 WORKDIR /app
 
 # Copy the source code into the container
-COPY ../.. .
+COPY . .
 
 # Build the Go application
-RUN go build -o scraper cmd/scraper/main.go
+RUN go build -o scraper /app/cmd/scraper
 
 FROM alpine
 WORKDIR /app
 
-COPY --from=build /app/scraper scraper
-COPY /cmd/scraper/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY --from=build /app/scraper ./scraper
+COPY --from=build /app/cmd/scraper/entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 
 RUN addgroup -S gouser && adduser -S gouser -G gouser
 USER gouser
 
-# Command to run the Go application
-CMD ["./entrypoint.sh"]
+# Command to run the scraper every 5 minutes
+CMD ["./entrypoint.sh", "$SCRAPER_INTERVAL"]
 
