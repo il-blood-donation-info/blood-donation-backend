@@ -8,7 +8,6 @@ blood-donation-backend
 
 # Build directories
 /bin
-/pkg
 /vendor
 
 # Testing and benchmarking tool
