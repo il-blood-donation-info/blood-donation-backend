@@ -11,3 +11,5 @@ jobs:
         with:
           compose-file: "docker-compose.yml"
           down-flags: "--volumes --remove-orphans --rmi local"
+          test-container: "blood-info"
+          test-command: "$(wget -q -O- --no-check-certificate https://localhost:8443/station | jq '. | length') -gt 0"

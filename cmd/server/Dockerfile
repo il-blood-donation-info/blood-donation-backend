@@ -14,6 +14,7 @@ RUN go build -o blood-info cmd/server/main.go
 RUN go build -o tls-self-signed-cert cmd/cert/tls-self-signed-cert.go
 
 FROM alpine
+RUN apk --no-cache add jq
 WORKDIR /app
 
 COPY --from=build /app/blood-info blood-info
