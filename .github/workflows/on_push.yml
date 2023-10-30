@@ -12,9 +12,21 @@ jobs:
     steps:
       # need checkout before using docker-compose-action
       - uses: actions/checkout@v3
-      - uses: adambirds/docker-compose-action@v1.3.0
+      - name: Staring blood-info and scraper services
+        uses: isbang/compose-action@v1.5.1
         with:
           compose-file: "docker-compose.yml"
           down-flags: "--volumes --remove-orphans --rmi local"
-          test-container: "blood-info"
-          test-command: "$(wget -q -O- --no-check-certificate https://localhost:8443/station | jq '. | length') -gt 0"
+          services: |
+            db
+            blood-info
+            scraper
+
+      - name: Run Tests
+        working-directory: ./
+        run: pwd && ls -l && docker-compose run --rm test
+
+      - name: Stop
+        if: always()
+        shell: bash
+        run: docker-compose down
