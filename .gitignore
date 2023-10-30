@@ -1,6 +1,9 @@
 # GoLand IDE
 .idea/
 
+# Fleet IDE
+.fleet/
+
 # Compiled Go programs and executables
 *.exe
 *.out
