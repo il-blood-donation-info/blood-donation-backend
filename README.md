@@ -43,11 +43,11 @@ go run main.go
 Edit or change the db.env file to your liking. Then, run the following command:
 
 ```bash
-docker-compose --env_file db.env up --build
+docker-compose --env-file db.env up --build
 ```
 ### Stopping the containers
 ```bash
-docker-compose --env_file db.env down --remove-orphans --volumes --rmi local
+docker-compose --env-file db.env down --remove-orphans --volumes --rmi local
 ```
 
 ## Testing the API
