@@ -8,6 +8,7 @@ import (
 	"github.com/il-blood-donation-info/blood-donation-backend/pkg/api"
 	"github.com/il-blood-donation-info/blood-donation-backend/server"
 	middleware "github.com/oapi-codegen/nethttp-middleware"
+	"github.com/rs/cors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
@@ -51,9 +52,15 @@ func main() {
 	swagger.Servers = nil
 
 	strictBloodInfoServer := server.NewStrictBloodInfoServer(db)
-	strictHandler := api.NewStrictHandler(strictBloodInfoServer, nil)
+
+	// We can add 2 kinds of middlewares:
+	// - "strict" middlewares here deal in per-request generated `api` types.
+	// - r.Use() chi middlewares below deal in de-facto standard `http.Handler`.
+	strictMiddlewares := []api.StrictMiddlewareFunc{}
+	strictHandler := api.NewStrictHandler(strictBloodInfoServer, strictMiddlewares)
 
 	r := chi.NewRouter()
+	r.Use(cors.Default().Handler) // Tell browsers cross-origin requests OK from any domain.
 	r.Use(middleware.OapiRequestValidator(swagger))
 	api.HandlerFromMux(strictHandler, r)
 	s := &http.Server{
