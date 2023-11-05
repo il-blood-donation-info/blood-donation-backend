@@ -33,8 +33,8 @@ export DB_PORT=5432
 export DB_USER=mada
 export DB_NAME=bloodinfo
 export DB_PASSWORD= # your password
-go run  cert/tls-self-signed-cert.go
-go run main.go
+go run cmd/cert/tls-self-signed-cert.go
+go run cmd/server/main.go
 ```
 
 ## Running using docker-compose
