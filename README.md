@@ -9,7 +9,7 @@ View OpenAPI definition using Swagger UI [here](https://generator.swagger.io/?ur
 ## Updating the API and generating code
 In order to modify the API, edit the api/openapi.yaml file. Then, run the following commands to generate the code:
 ```bash
-oapi-codegen -config api/api.cfg.yaml api/openapi.yaml
+oapi-codegen -config pkg/api/api.cfg.yaml pkg/api/openapi.yaml
 ```
 
 If `oapi-codegen` isn't available, install the code-gen dependency:
