@@ -9,7 +9,7 @@ View OpenAPI definition using Swagger UI [here](https://generator.swagger.io/?ur
 ## Updating the API and generating code
 In order to modify the API, edit the api/openapi.yaml file. Then, run the following commands to generate the code:
 ```bash
-oapi-codegen -config api/api.cfg.yaml api/openapi.yaml
+oapi-codegen -config pkg/api/api.cfg.yaml pkg/api/openapi.yaml
 ```
 
 If `oapi-codegen` isn't available, install the code-gen dependency:
@@ -33,8 +33,8 @@ export DB_PORT=5432
 export DB_USER=mada
 export DB_NAME=bloodinfo
 export DB_PASSWORD= # your password
-go run  cert/tls-self-signed-cert.go
-go run main.go
+go run cmd/cert/tls-self-signed-cert.go
+go run cmd/server/main.go
 ```
 
 ## Running using docker-compose
@@ -98,5 +98,5 @@ EOF
 # Use echo to pass the commands to psql
 echo "$TEST_DB_COMMANDS" | psql -U postgres
 
-go test ./scraper/... -v
+go test ./pkg/scraper/... -v
 ```
