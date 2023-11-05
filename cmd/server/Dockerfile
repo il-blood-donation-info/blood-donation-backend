@@ -5,7 +5,7 @@ FROM golang:1.20-alpine as build
 WORKDIR /app
 
 # Copy the source code into the container
-COPY ../.. .
+COPY . .
 
 # Build the Go application
 RUN go build -o blood-info cmd/server/main.go
