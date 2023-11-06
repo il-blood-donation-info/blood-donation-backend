@@ -45,6 +45,13 @@ Edit or change the db.env file to your liking. Then, run the following command:
 ```bash
 docker-compose --env-file db.env up --build
 ```
+
+Note this generates a self-signed cert & key during the build, separate from anything you might have in cert.pem file.
+So once it built, you want to run this to get the same ./cert.pem:
+```
+docker run blood-donation-backend_blood-info /bin/cat cert.pem > cert.pem
+```
+
 ### Stopping the containers
 ```bash
 docker-compose --env-file db.env down --remove-orphans --volumes --rmi local
