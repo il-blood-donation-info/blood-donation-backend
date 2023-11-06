@@ -7,6 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.0.0
+	github.com/rs/cors v1.10.1
 	gorm.io/driver/postgres v1.5.3
 	gorm.io/gorm v1.25.5
 )

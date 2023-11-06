@@ -5,7 +5,7 @@ FROM golang:1.20-alpine as build
 WORKDIR /app
 
 # Copy the source code into the container
-COPY ../.. .
+COPY . .
 
 # Build the Go application
 RUN go build -o blood-info cmd/server/main.go
@@ -20,6 +20,8 @@ COPY --from=build /app/blood-info blood-info
 COPY --from=build /app/tls-self-signed-cert tls-self-signed-cert
 
 # FIXME: This is a hack to get the self-signed certificate to work. There must be a better way.
+# FIXME: This makes the secret `key.pem` also part of the image; uploading the image anywhere would leak it!
+# FIXME: any prior `cert.pem` & `key.pem` you had in current dir are *also* leaked in the COPY layer.
 RUN ./tls-self-signed-cert
 
 RUN addgroup -S gouser && adduser -S gouser -G gouser
