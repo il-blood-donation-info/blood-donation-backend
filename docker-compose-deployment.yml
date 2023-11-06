@@ -1,0 +1,47 @@
+version: '3'
+services:
+  db:
+    image: postgres
+    env_file:
+      - db.env
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - /data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  blood-info:
+    build:
+      context: .
+      dockerfile: cmd/server/Dockerfile
+    ports:
+      - "443:8443"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+    env_file:
+      - config.env
+
+  scraper:
+    build:
+      context: .
+      dockerfile: cmd/scraper/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    env_file:
+      - config.env
+    environment:
+      - SCRAPER_INTERVAL=300
+
+  test:
+    build:
+      context: .
+      dockerfile: test/integration/Dockerfile
+
