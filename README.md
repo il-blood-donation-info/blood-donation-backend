@@ -61,7 +61,7 @@ docker-compose --env-file db.env down --remove-orphans --volumes --rmi local
 
 ### Creating a user
 ```bash
-curl --cacert ./cert.pem -X POST https://localhost:8443/users -H "Content-Type: application/json" -d '{"description": "User description",
+curl --cacert ./cert.pem -X POST https://localhost:8443/api/users -H "Content-Type: application/json" -d '{"description": "User description",
     "email": "user@example.com",
     "first_name": "John",
     "id": 1,
@@ -72,7 +72,7 @@ curl --cacert ./cert.pem -X POST https://localhost:8443/users -H "Content-Type: 
 
 ### Getting a user
 ```bash
-curl --cacert ./cert.pem -s -X GET https://localhost:8443/users | jq
+curl --cacert ./cert.pem -s -X GET https://localhost:8443/api/users | jq
 [
   {
     "description": "User description",
