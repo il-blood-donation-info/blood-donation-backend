@@ -20,12 +20,20 @@ services:
       dockerfile: cmd/server/Dockerfile
     ports:
       - "10443:8443"
+    volumes:
+      - /ssl:/ssl
     depends_on:
       db:
         condition: service_healthy
     restart: on-failure
     env_file:
       - config.env
+    command:
+      - ./blood-info
+      - --certfile
+      - /ssl/ssl.crt
+      - --keyfile
+      - /ssl/ssl.key
 
   scraper:
     build:
