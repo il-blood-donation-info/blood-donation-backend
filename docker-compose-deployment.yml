@@ -19,7 +19,7 @@ services:
       context: .
       dockerfile: cmd/server/Dockerfile
     ports:
-      - "443:8443"
+      - "10443:8443"
     depends_on:
       db:
         condition: service_healthy
