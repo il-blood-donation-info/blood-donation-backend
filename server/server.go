@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/il-blood-donation-info/blood-donation-backend/pkg/api"
 	"gorm.io/gorm"
@@ -44,7 +45,29 @@ func (s StrictBloodInfoServer) GetStations(ctx context.Context, request api.GetS
 
 // UpdateStation updates station
 func (s StrictBloodInfoServer) UpdateStation(ctx context.Context, request api.UpdateStationRequestObject) (api.UpdateStationResponseObject, error) {
-	panic("implement me")
+	var station api.Station
+	tx := s.db.First(&station, request.Id)
+	if tx.Error != nil {
+		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+			// Handle the case when no record is found
+			return api.UpdateStation404JSONResponse{}, tx.Error
+		} else {
+			// Handle other errors
+			return api.UpdateStation500JSONResponse{}, tx.Error
+		}
+	}
+
+	// add a status to a schedule point
+	stationStatus := api.StationStatus{
+		Id:     &station.Id,
+		IsOpen: request.Body.IsOpen,
+	}
+	tx = s.db.Create(&stationStatus)
+	if tx.Error != nil {
+		return api.UpdateStation500JSONResponse{}, tx.Error
+	}
+
+	return api.UpdateStation200JSONResponse{}, nil
 }
 
 // GetUsers get all users

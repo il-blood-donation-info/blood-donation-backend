@@ -91,12 +91,12 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - properties
               properties:
                 isOpen:
                   type: boolean
                   description: New status for station's open status
+              required:
+                - isOpen
       responses:
         "200":
           description: OK
