@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/il-blood-donation-info/blood-donation-backend/pkg/api"
 	"gorm.io/gorm"
+	"time"
 )
 
 // StrictBloodInfoServer implements StrictServerInterface
@@ -45,8 +46,8 @@ func (s StrictBloodInfoServer) GetStations(ctx context.Context, request api.GetS
 
 // UpdateStation updates station
 func (s StrictBloodInfoServer) UpdateStation(ctx context.Context, request api.UpdateStationRequestObject) (api.UpdateStationResponseObject, error) {
-	var station api.Station
-	tx := s.db.First(&station, request.Id)
+	var sc api.StationSchedule
+	tx := s.db.Where("station_id = ? and date = ?", request.Id, time.Now().Format(dateFormat)).First(&sc)
 	if tx.Error != nil {
 		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
 			// Handle the case when no record is found
@@ -59,15 +60,15 @@ func (s StrictBloodInfoServer) UpdateStation(ctx context.Context, request api.Up
 
 	// add a status to a schedule point
 	stationStatus := api.StationStatus{
-		Id:     &station.Id,
-		IsOpen: request.Body.IsOpen,
+		StationScheduleId: *sc.Id,
+		IsOpen:            request.Body.IsOpen,
 	}
 	tx = s.db.Create(&stationStatus)
 	if tx.Error != nil {
 		return api.UpdateStation500JSONResponse{}, tx.Error
 	}
 
-	return api.UpdateStation200JSONResponse{}, nil
+	return api.UpdateStation200Response{}, nil
 }
 
 // GetUsers get all users

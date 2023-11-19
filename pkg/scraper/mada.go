@@ -16,13 +16,14 @@ import (
 const customDateLayout = "2006-01-02"
 
 type DonationDetail struct {
-	Name         string    `json:"Name"`
-	City         string    `json:"City"`
-	Street       string    `json:"Street"`
-	NumHouse     string    `json:"NumHouse"`
-	FromHour     string    `json:"FromHour"`
-	ToHour       string    `json:"ToHour"`
-	DateDonation time.Time `json:"DateDonation"`
+	Name          string    `json:"Name"`
+	City          string    `json:"City"`
+	Street        string    `json:"Street"`
+	NumHouse      string    `json:"NumHouse"`
+	FromHour      string    `json:"FromHour"`
+	ToHour        string    `json:"ToHour"`
+	DateDonation  time.Time `json:"DateDonation"`
+	SchedulingURL string    `json:"SchedulingURL"`
 }
 
 type MadaResponse struct {

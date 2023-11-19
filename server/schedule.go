@@ -3,7 +3,7 @@ package server
 import (
 	"fmt"
 	"github.com/il-blood-donation-info/blood-donation-backend/pkg/api"
-	openapi_types "github.com/oapi-codegen/runtime/types"
+	"github.com/oapi-codegen/runtime/types"
 	"gorm.io/gorm"
 	"log"
 	"time"
@@ -19,34 +19,32 @@ type StationSchedulePoint struct {
 	CloseTime      string
 	LastStatus     bool
 	UserID         *int
+	SchedulingUrl  string
 }
 
 const layout = "15:04"
 const dateFormat = "2006-01-02"
 
 func isOpen(point StationSchedulePoint) *bool {
-	loc, err := time.LoadLocation("Asia/Jerusalem")
-	if err != nil {
-		log.Fatalf("failed to load location: %v", err)
-	}
-	today := time.Now().In(loc).Truncate(24 * time.Hour)
-
-	if point.Date.After(today) {
-		return nil
-	}
-
 	if point.UserID != nil {
 		return &point.LastStatus
 	}
 
-	var isOpen bool
-	if !point.LastStatus {
+	loc, err := time.LoadLocation("Asia/Jerusalem")
+	if err != nil {
+		log.Fatalf("failed to load location: %v", err)
+	}
+	isOpen := isOpenToday(point, loc)
+	if !isOpen {
 		return &isOpen
 	}
 
-	currentTime := time.Now().In(loc)
+	isOpen = isOpenAtThisTime(point, loc)
+	return &isOpen
+}
 
-	// Parse OpenTime and CloseTime
+func isOpenAtThisTime(point StationSchedulePoint, loc *time.Location) bool {
+	currentTime := time.Now().In(loc)
 	openTime, err := time.Parse(layout, point.OpenTime)
 	if err != nil {
 		log.Fatalf("failed to parse open time: %v", err)
@@ -56,9 +54,16 @@ func isOpen(point StationSchedulePoint) *bool {
 		log.Fatalf("failed to parse close time: %v", err)
 	}
 
-	isOpen = currentTime.After(openTime) && currentTime.Before(closeTime)
-	return &isOpen
+	return currentTime.After(openTime) && currentTime.Before(closeTime)
+}
 
+func isOpenToday(point StationSchedulePoint, loc *time.Location) bool {
+	today := time.Now().In(loc).Truncate(24 * time.Hour)
+	if point.Date.After(today) {
+		return false
+	}
+
+	return point.LastStatus
 }
 
 // TODO: move from here
@@ -67,13 +72,14 @@ func ConvertToSchedulePoints(points []StationSchedulePoint) []api.SchedulePoint 
 
 	for _, point := range points {
 		schedulePoint := api.SchedulePoint{
-			Address:   point.StationAddress, // This field is not provided in StationSchedulePoint
-			CloseTime: point.CloseTime,      // assuming you want HH:MM:SS format
-			Date:      openapi_types.Date{Time: point.Date},
-			IsOpen:    isOpen(point), //SchedulePoint.IsOpen is &, not showing correct value in json
-			Name:      point.StationName,
-			OpenTime:  point.OpenTime, // assuming you want HH:MM:SS format
-			StationId: int64(point.StationID),
+			Address:       point.StationAddress, // This field is not provided in StationSchedulePoint
+			CloseTime:     point.CloseTime,      // assuming you want HH:MM:SS format
+			Date:          types.Date{Time: point.Date},
+			IsOpen:        isOpen(point), //SchedulePoint.IsOpen is &, not showing correct value in json
+			Name:          point.StationName,
+			OpenTime:      point.OpenTime, // assuming you want HH:MM:SS format
+			StationId:     int64(point.StationID),
+			SchedulingUrl: point.SchedulingUrl,
 		}
 		schedulePoints = append(schedulePoints, schedulePoint)
 	}
@@ -141,7 +147,8 @@ func (s *Scheduler) GetStationsFullSchedule(db *gorm.DB) (Schedule, error) {
 			"c.open_time as open_time, "+
 			"c.close_time as close_time, "+
 			"t.user_id as user_id, "+
-			"COALESCE(t.is_open, true) as last_status"). //Don't we need to differentiate true / false and not defined ?
+			"COALESCE(t.is_open, true) as last_status,"+ //Don't we need to differentiate true / false and not defined ?
+			"c.scheduling_url as scheduling_url").
 		Joins("LEFT JOIN station_schedules c ON c.station_id = s.id").
 		Joins("LEFT JOIN LATERAL (?) as t ON t.station_schedule_id = c.id", subquery).
 		Where(fmt.Sprintf("date >= '%s'", s.SinceDate.Format(dateFormat))).

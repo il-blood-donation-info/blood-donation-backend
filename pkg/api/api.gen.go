@@ -37,13 +37,14 @@ type ApiError struct {
 
 // SchedulePoint defines model for SchedulePoint.
 type SchedulePoint struct {
-	Address   string             `json:"address"`
-	CloseTime string             `json:"close_time"`
-	Date      openapi_types.Date `json:"date"`
-	IsOpen    *bool              `json:"is_open,omitempty"`
-	Name      string             `json:"name"`
-	OpenTime  string             `json:"open_time"`
-	StationId int64              `gorm:"primaryKey" json:"station_id"`
+	Address       string             `json:"address"`
+	CloseTime     string             `json:"close_time"`
+	Date          openapi_types.Date `json:"date"`
+	IsOpen        *bool              `json:"is_open,omitempty"`
+	Name          string             `json:"name"`
+	OpenTime      string             `json:"open_time"`
+	SchedulingUrl string             `json:"scheduling_url"`
+	StationId     int64              `gorm:"primaryKey" json:"station_id"`
 }
 
 // Station defines model for Station.
@@ -57,10 +58,11 @@ type Station struct {
 
 // StationSchedule defines model for StationSchedule.
 type StationSchedule struct {
-	CloseTime string    `json:"close_time"`
-	Date      time.Time `json:"date"`
-	Id        *int64    `gorm:"primaryKey" json:"id,omitempty"`
-	OpenTime  string    `json:"open_time"`
+	CloseTime     string    `json:"close_time"`
+	Date          time.Time `json:"date"`
+	Id            *int64    `gorm:"primaryKey" json:"id,omitempty"`
+	OpenTime      string    `json:"open_time"`
+	SchedulingUrl string    `json:"scheduling_url"`
 
 	// StationId The ID of the related station
 	StationId     int64            `gorm:"index" json:"station_id"`
@@ -541,13 +543,12 @@ type UpdateStationResponseObject interface {
 	VisitUpdateStationResponse(w http.ResponseWriter) error
 }
 
-type UpdateStation200JSONResponse Station
+type UpdateStation200Response struct {
+}
 
-func (response UpdateStation200JSONResponse) VisitUpdateStationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
+func (response UpdateStation200Response) VisitUpdateStationResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
+	return nil
 }
 
 type UpdateStation400JSONResponse ApiError
@@ -1004,27 +1005,27 @@ func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, id i
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xY227jNhD9FYIt0Bf5kiYpWvXJ23SLYNtN0DRPiyBgzLHEhUSqJJXLBv73BS+6M7aT",
-	"rJ0A2TdbHHKGc86ZGekez0VeCA5cKxzfYzVPISf256xgf0oppPldSFGA1AzsSg5KkQTMT31XAI6x0pLx",
-	"BC+XEZbwf8kkUBx/qg0vospQXH2GucbLCJ/NU6BlBqeCcT30QSiVoFTAR4TnmVBwqVluQ1gImRONY2wf",
-	"RENzSnTX0D4IGDJ1KQrgLZ9XQmRAuFnkJIdgNGbL5sEoTTQT/JLRjjnj+peDxp5xDQlIHOHbkSAFG80F",
-	"hQT4CG61JCNNEpuZRMgcx7iQLCfy7gPc4WUfgpY/f4eozm1UZaK5Qie5QdjceY8DjEIGGuglsUDfjhIx",
-	"+qwEH7GECwk41rKEyD33e83Nxkdu20xvmAezNzaRK03yAt0wnSLzF30RHH5nnMKtpejWcr+CJRUOytPe",
-	"GDENuT3rRwkLHOMfJo0YJ16JE5/wSi7mLH84kZLcDTQXAnoFkGeteLqAfguVjR6y3iIEz9EjBTWXrHAM",
-	"x/+lgI6PkFggnQKSkBENFPkdOPpG4Te8rDmiiS7Voxnidq3jR6cgPFn/Z3WIPdJIII3SX5wLKyt6X5Kv",
-	"ggOlArlhc3gI2fZ9mhREbWxCyJ4rCPT6V1a6O+AEyizkhGXBlQWTSl8+WJ+3SMKMrHJcpIKHV6RwZRl4",
-	"mRt8ZzRnBsd/oRBSg2yh+MD8ZQlgj+ncvx1SlbIqkG6KhzyxquILMVTK7PQYLYREOeEkYTxBV5kQFFHB",
-	"LS0rzShEOEWG5mpsEsy0uSV+Z42PKuPZ6TGO8DVI5Q7fG0/H02raIgXDMd4fT8f7Jm6iU5v9Sbu3JqCH",
-	"If4F2sq4MrTxkixrYnPES4FJNC+lBK6Rr8bWtbRmx9SdVfdOk3VVCK6cZn6eTm0tFFyDm21JUWRsbjdP",
-	"jHyaUXvzKt+Zl4dVvi8OfPLBWB1M9x4Vy6oQ6jeCgLdzTkqdCsm+ADV+Dx+Zg6f6rRYirMrcqO7ZMDsx",
-	"f8I1my7M6ZNq70pytZ0EGdOs7YAxvkl958oarvRQqwng89fFf3LP6NL2yTJAgvPCjDqt+aBLAbd8Vq8W",
-	"RJIcNEjjsH+WN0PHR6aNmyem1FXTfeyre13uXSdusrR+fLhw20Hpd4LePQqC7pDA1Imfsro3+Ag3XldW",
-	"gj4rPylkqnhLcb3RrN/F3OnhXtS9//KZutpITg/LZ4c0Hr+UYL3j/Z04fi/kFaMUuPd6sBOvH4VG70XJ",
-	"q7se7sTrP6BTQZFxPssycVOn+rcds+pwxzzu1ONBAQ1XYzs/rm3FzirQh8/9wvabsH2r+t6BN+jAFVgV",
-	"4OY/vjBvSEIFMP7Dvs3aXQOE3dq5W3pqi1uP6ib9Z28LPkOJoG+VPl0e9MhTl4p6anPfM4Z0ch8swnRy",
-	"a55OK0c2Y7PleW1YsAIh+K8247dKii6aw4qyYnQPMsCtvRIGvGQ5m269nL3dRtglYL+SGVOQ12HW/S3m",
-	"JEMUriETRW4/Z1hbHOFSZjjGqdaFiieTzBimQun414ODfWwI5R31jzypBKAQuRKlbr8hezqr+gPD2s1V",
-	"c/c77aWWF8uvAQAA//9rxhe7fx4AAA==",
+	"H4sIAAAAAAAC/+xZW2/bNhT+KwI3YC/ypUsybNqTu6xD0K0NluWpCAzGPJZYSKRGHuXSwP994EWyZDG+",
+	"dLETIH2TxUOey/edC+UHMpNFKQUI1CR5IHqWQUHt46TkvysllXkulSxBIQe7UoDWNAXziPclkIRoVFyk",
+	"ZLGIiYJ/K66AkeRTI3gV14Ly+jPMkCxicjHLgFU5nEsusK+DMqZA64COmMxyqWGKvLAmzKUqKJKE2Bdx",
+	"X5xR7AraFwFBrqeyBNHSeS1lDlSYRUELCFpjtmxvjHZuc5FOK5UHD9RIkUsx5axzIhf40/HySC4QUlAk",
+	"JncDSUs+mEkGKYgB3KGiA6SpDV4qVUESUipeUHX/Hu7JYhWllj7vZtyEP66DtfSyE/+eQ0GonYLdQGaQ",
+	"AwKbUkuOu0EqB5+1FAOeCqmAJKgqiN17v9e4Ojx12ya4ZWDM3sS4opEWZXTLMYvMz+iLFPArFwzuLK33",
+	"BsYaZtXA+BBbIY5Q2LO+VzAnCflutEzgkc/ekQ94nWLmLH84VYre9/I0hPwaIC9a9nQBfYrMHDwmvUcI",
+	"9pzDDPRM8dIlAfkng+jsNJLzCDOIFOQUgUV+B4mfyMMldRsaIcVK70wit2sThTpF5OlqxkVj8wrRFNBl",
+	"dXh2/qztHKtp/CJIUWlQW3aYx6Bu+7MMQdzGJoTspYbATPHCyn0HnEB+Q0F5OPPnXGmcPlrT90jCnK5T",
+	"XGZShFeUdKUcRFUYfCes4AbHv6GUCkG1UHxkzrMEsMd0/G+bVIesNqQb4j5PbFaJuexnyuT8LJpLFRVU",
+	"0JSLNLrOpWQRk8LSss4ZHVHBIkNzPTQB5mi8JG+t8GktPDk/IzG5AaXd4W+G4+G4nupoyUlCjobj4ZGx",
+	"m2Jmoz9q9+MUsG/iH4A2jWtBay/N86VtjngZcBXNKqVAYOTLs1WtrNgZc2c1/dZEXZdSaJczP47HthZK",
+	"geBmaFqWOZ/ZzSOTPsuRfvuy35nL+2V/NTnIx/dG6nj8Zidb1pnQ3DwC2i4FrTCTin8BZvSe7BiDr9Vb",
+	"L8REV4XJuv8Ns0vmT6Rh05U5fVTvXUuutpIgY5ZrB2CMb1LfuLKBKyuoNQTw8eviP3rgbGH7ZBUgwWVp",
+	"Rp3WfNClgFu+aFZLqmgBCMooXD3Li0Vnp6aNmzem1NU3gsRX96bcu068jNLm8eHKbQeNbyW73wmC7pDA",
+	"9Uc/ZXU9+AC3Pq9sCvqo/KAjU8VbGbcymq12MXd6uBd1/V+E8ypM9gOSbvhc6eUVHx1E8TuprjljILzW",
+	"44No/SAxeicrUft6chCtfwFmkkVG+STP5W0T6l8OzKqTA/O4Uz175S5cO+20t7FxOqlA17z0C/tvmfYO",
+	"9K1fbtEva7BqwM1vcmXuM1IHMP7N3j3trh7Cbu3SLX1tQ9qM6jbd4s0edIYCwV4rfbo8WCFPUyqaGct9",
+	"fejTyX1eCNPJrXk6rR2wjMyep6tNs4g1wX9jGb5WUnTR7FeUNYN2kAFu7YUw4DnL2Xjv5ez1NsIuAVcr",
+	"mREFdRNm3Z9yRvOIwQ3ksizsxwcrS2Ji/7cgGWKpk9EoN4KZ1Jj8fHx8RAyhvKLenaZOAB3Ra1lh+z7r",
+	"6aybzwEbN9fN3e+0Ti2uFv8FAAD//8z+QMKVHgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
