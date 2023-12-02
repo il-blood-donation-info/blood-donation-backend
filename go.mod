@@ -13,6 +13,7 @@ require (
 )
 
 require (
+	github.com/agiledragon/gomonkey/v2 v2.11.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/swag v0.22.4 // indirect

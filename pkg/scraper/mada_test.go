@@ -3,6 +3,7 @@ package scraper
 import (
 	"bytes"
 	"fmt"
+	"github.com/agiledragon/gomonkey/v2"
 	"github.com/il-blood-donation-info/blood-donation-backend/pkg/api"
 	"github.com/il-blood-donation-info/blood-donation-backend/server"
 	"gorm.io/driver/postgres"
@@ -72,6 +73,12 @@ func ResetMocks() {
 }
 
 func TestScrapeMada(t *testing.T) {
+    patches := gomonkey.ApplyFunc(time.Now, func() time.Time {
+        return time.Unix(1697619600, 0)
+    })
+
+    defer patches.Reset()
+
 	db := setupDatabase()
 	defer teardown(db)
 	ResetMocks()
@@ -123,7 +130,7 @@ func TestScrapeMada(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
+ 
 	scheduledYesterday := schedule.FilterByDate(oneDayBefore)
 	if len(scheduledYesterday) > 0 {
 		t.Fatal("no yesterday dates should be present in schedule")
