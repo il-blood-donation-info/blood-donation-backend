@@ -3,6 +3,7 @@ module github.com/il-blood-donation-info/blood-donation-backend
 go 1.20
 
 require (
+	github.com/agiledragon/gomonkey/v2 v2.11.0
 	github.com/getkin/kin-openapi v0.120.0
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
@@ -13,7 +14,6 @@ require (
 )
 
 require (
-	github.com/agiledragon/gomonkey/v2 v2.11.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/swag v0.22.4 // indirect

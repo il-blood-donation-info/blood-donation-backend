@@ -11,18 +11,18 @@ import (
 
 // StrictBloodInfoServer implements StrictServerInterface
 type StrictBloodInfoServer struct {
-	db        *gorm.DB
+	Db        *gorm.DB
 	scheduler Scheduler
 }
 
 func NewStrictBloodInfoServer(db *gorm.DB) StrictBloodInfoServer {
-	return StrictBloodInfoServer{db: db}
+	return StrictBloodInfoServer{Db: db}
 }
 
 // GetSchedule gets schedule
 func (s StrictBloodInfoServer) GetSchedule(ctx context.Context, request api.GetScheduleRequestObject) (api.GetScheduleResponseObject, error) {
 	var stationsSchedule []api.SchedulePoint
-	schedule, err := s.scheduler.GetStationsFullSchedule(s.db)
+	schedule, err := s.scheduler.GetStationsFullSchedule(s.Db)
 	stationsSchedule = ConvertToSchedulePoints(schedule)
 	if err != nil {
 		return api.GetSchedule500JSONResponse{
@@ -35,7 +35,7 @@ func (s StrictBloodInfoServer) GetSchedule(ctx context.Context, request api.GetS
 // GetStations gets all stations
 func (s StrictBloodInfoServer) GetStations(ctx context.Context, request api.GetStationsRequestObject) (api.GetStationsResponseObject, error) {
 	var stations []api.Station
-	tx := s.db.Find(&stations)
+	tx := s.Db.Find(&stations)
 	if tx.Error != nil {
 		return api.GetStations500JSONResponse{
 			Message: fmt.Sprintf("error getting stations: %v", tx.Error),
@@ -47,7 +47,8 @@ func (s StrictBloodInfoServer) GetStations(ctx context.Context, request api.GetS
 // UpdateStation updates station
 func (s StrictBloodInfoServer) UpdateStation(ctx context.Context, request api.UpdateStationRequestObject) (api.UpdateStationResponseObject, error) {
 	var sc api.StationSchedule
-	tx := s.db.Where("station_id = ? and date = ?", request.Id, time.Now().Format(dateFormat)).First(&sc)
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>> here I ammmmmmmm")
+	tx := s.Db.Where("station_id = ? and date = ?", request.Id, time.Now().Format(dateFormat)).First(&sc)
 	if tx.Error != nil {
 		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
 			// Handle the case when no record is found
@@ -63,7 +64,7 @@ func (s StrictBloodInfoServer) UpdateStation(ctx context.Context, request api.Up
 		StationScheduleId: *sc.Id,
 		IsOpen:            request.Body.IsOpen,
 	}
-	tx = s.db.Create(&stationStatus)
+	tx = s.Db.Create(&stationStatus)
 	if tx.Error != nil {
 		return api.UpdateStation500JSONResponse{}, tx.Error
 	}
@@ -74,7 +75,7 @@ func (s StrictBloodInfoServer) UpdateStation(ctx context.Context, request api.Up
 // GetUsers get all users
 func (s StrictBloodInfoServer) GetUsers(ctx context.Context, request api.GetUsersRequestObject) (api.GetUsersResponseObject, error) {
 	var users []api.User
-	tx := s.db.Find(&users)
+	tx := s.Db.Find(&users)
 	if tx.Error != nil {
 		return api.GetUsers500JSONResponse{
 			Message: fmt.Sprintf("error getting users: %v", tx.Error),
@@ -94,7 +95,7 @@ func (s StrictBloodInfoServer) CreateUser(ctx context.Context, request api.Creat
 		Phone:       request.Body.Phone,
 		Role:        request.Body.Role,
 	}
-	tx := s.db.Create(&user)
+	tx := s.Db.Create(&user)
 
 	if tx.Error != nil {
 		return api.CreateUser500JSONResponse{
@@ -110,7 +111,7 @@ func (s StrictBloodInfoServer) DeleteUser(ctx context.Context, request api.Delet
 	user := api.User{
 		Id: request.Id,
 	}
-	tx := s.db.Delete(&user)
+	tx := s.Db.Delete(&user)
 	if tx.Error != nil {
 		return api.DeleteUser500JSONResponse{
 			Message: fmt.Sprintf("error deleting user: %v", tx.Error),
@@ -120,7 +121,7 @@ func (s StrictBloodInfoServer) DeleteUser(ctx context.Context, request api.Delet
 }
 
 func (s StrictBloodInfoServer) UpdateUser(ctx context.Context, request api.UpdateUserRequestObject) (api.UpdateUserResponseObject, error) {
-	tx := s.db.Model(&api.User{}).Where("id = ?", request.Id).Updates(api.User{
+	tx := s.Db.Model(&api.User{}).Where("id = ?", request.Id).Updates(api.User{
 		FirstName:   request.Body.FirstName,
 		LastName:    request.Body.LastName,
 		Email:       request.Body.Email,
