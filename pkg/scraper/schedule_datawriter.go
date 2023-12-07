@@ -69,7 +69,7 @@ func (p ScheduleDataWriter) processDonationDetails(tx *gorm.DB, donationDetails 
 			if schedule.Id == nil && p.isScheduleToday(schedule) {
 				schedule.StationStatus = &[]api.StationStatus{{IsOpen: true}}
 			}
-
+			schedule.SchedulingUrl = donation.SchedulingURL
 			if err := tx.Save(&schedule).Error; err != nil {
 				log.Printf("Error while saving schedule: %v", err)
 				return err

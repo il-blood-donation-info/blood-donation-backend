@@ -1,9 +1,12 @@
-package scraper
+package integration_tests
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/agiledragon/gomonkey/v2"
 	"github.com/il-blood-donation-info/blood-donation-backend/pkg/api"
+	"github.com/il-blood-donation-info/blood-donation-backend/pkg/scraper"
 	"github.com/il-blood-donation-info/blood-donation-backend/server"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -28,6 +31,12 @@ var (
 	// MockClient is an instantiation of MockHTTPClient with DoFunc set
 	MockClient = &MockHTTPClient{}
 )
+
+func setupServer() *server.StrictBloodInfoServer {
+	db := setupDatabase()
+	srv := server.NewStrictBloodInfoServer(db)
+	return &srv
+}
 
 func setupDatabase() *gorm.DB {
 	dbHost := os.Getenv("DB_HOST")
@@ -54,11 +63,11 @@ func teardown(db *gorm.DB) {
 		return
 	}
 	// Perform teardown tasks here
-	//err := db.Migrator().DropTable(&api.User{}, &api.Station{}, &api.StationStatus{}, &api.StationSchedule{})
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	CloseDbConnection(db)
+	err := db.Migrator().DropTable(&api.User{}, &api.Station{}, &api.StationStatus{}, &api.StationSchedule{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	scraper.CloseDbConnection(db)
 }
 
 // Do is the mock client's `Do` function
@@ -72,8 +81,13 @@ func ResetMocks() {
 }
 
 func TestScrapeMada(t *testing.T) {
-	db := setupDatabase()
-	defer teardown(db)
+	patches := gomonkey.ApplyFunc(time.Now, func() time.Time {
+		return time.Unix(1697619600, 0)
+	})
+	defer patches.Reset()
+
+	srv := setupServer()
+	defer teardown(srv.Db)
 	ResetMocks()
 
 	MockClient.DoFunc = func(*http.Request) (*http.Response, error) {
@@ -94,7 +108,7 @@ func TestScrapeMada(t *testing.T) {
 			Body:       io.NopCloser(bytes.NewBufferString(string(mockResponse))),
 		}, nil
 	}
-	s := Scraper{
+	s := scraper.Scraper{
 		Client: MockClient,
 	}
 	madaResponse, err := s.ScrapeMada()
@@ -109,8 +123,8 @@ func TestScrapeMada(t *testing.T) {
 	today := time.Date(2023, 10, 18, 0, 0, 0, 0, time.UTC)
 	oneDayBefore := today.AddDate(0, 0, -1)
 	log.Println("SaveData")
-	p := ScheduleDataWriter{
-		DB:        db,
+	p := scraper.ScheduleDataWriter{
+		DB:        srv.Db,
 		SinceTime: today,
 	}
 	err = p.SaveData(madaResponse)
@@ -118,8 +132,8 @@ func TestScrapeMada(t *testing.T) {
 		log.Fatalf("Failed to SaveData: %s", err)
 	}
 
-	srv := server.NewScheduler(server.WithSinceDate(today))
-	schedule, err := srv.GetStationsFullSchedule(db)
+	scheduler := server.NewScheduler(server.WithSinceDate(today))
+	schedule, err := scheduler.GetStationsFullSchedule(srv.Db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,5 +145,48 @@ func TestScrapeMada(t *testing.T) {
 	todaySchedule := schedule.FilterByDate(today)
 	if len(todaySchedule) != 5 {
 		t.Fatal(fmt.Sprintf("today should have 5 schedule points, has: %d", len(todaySchedule)))
+	}
+
+	// Check current status of station in schedule
+	// in todaySchedule find the station with name "TestName"
+	// check that it is open
+	for _, sc := range todaySchedule {
+		if sc.StationName == "TestName" {
+			if sc.LastStatus != true {
+				t.Fatal("TestName should be open")
+			}
+		}
+	}
+
+	// find the right station
+	stationName := "TestName"
+	station := api.Station{}
+	srv.Db.Find(&station, api.Station{Name: stationName})
+	if station.Id == 0 {
+		t.Fatal("station not found")
+	}
+
+	// make a put call to station
+	updateRequest := api.UpdateStationRequestObject{
+		Id:   station.Id,
+		Body: &api.UpdateStationJSONRequestBody{IsOpen: false},
+	}
+	_, err = srv.UpdateStation(context.TODO(), updateRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	schedule, err = scheduler.GetStationsFullSchedule(srv.Db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	todaySchedule = schedule.FilterByDate(today)
+
+	for _, sc := range todaySchedule {
+		if sc.StationName == "TestName" {
+			if sc.LastStatus != false {
+				t.Fatal("TestName should be closed")
+			}
+		}
 	}
 }

@@ -91,19 +91,15 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - properties
               properties:
                 isOpen:
                   type: boolean
                   description: New status for station's open status
+              required:
+                - isOpen
       responses:
         "200":
           description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Station"
         "400":
           description: Error.
           content:
@@ -327,6 +323,7 @@ components:
         - date
         - open_time
         - close_time
+        - scheduling_url
       properties:
         station_id:
           type: integer
@@ -348,6 +345,8 @@ components:
           format: time
         is_open:
           type: boolean
+        scheduling_url:
+          type: string
 
     Station:
       type: object
@@ -382,6 +381,7 @@ components:
         - date
         - open_time
         - close_time
+        - scheduling_url
       properties:
         id:
           type: integer
@@ -403,6 +403,8 @@ components:
         close_time:
           type: string
           format: time
+        scheduling_url:
+          type: string
         station_status:
           type: array
           items:
