@@ -47,8 +47,7 @@ func (s StrictBloodInfoServer) GetStations(ctx context.Context, request api.GetS
 // UpdateStation updates station
 func (s StrictBloodInfoServer) UpdateStation(ctx context.Context, request api.UpdateStationRequestObject) (api.UpdateStationResponseObject, error) {
 	var sc api.StationSchedule
-	fmt.Println(">>>>>>>>>>>>>>>>>>>>> here I ammmmmmmm")
-	tx := s.Db.Where("station_id = ? and date = ?", request.Id, time.Now().Format(dateFormat)).First(&sc)
+	tx := s.Db.Where("station_id = ? and DATE(date) = ?", request.Id, time.Now().Format(dateFormat)).First(&sc)
 	if tx.Error != nil {
 		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
 			// Handle the case when no record is found
@@ -59,10 +58,13 @@ func (s StrictBloodInfoServer) UpdateStation(ctx context.Context, request api.Up
 		}
 	}
 
+	// TODO: get real user id
 	// add a status to a schedule point
+	var userId int64 = 1
 	stationStatus := api.StationStatus{
 		StationScheduleId: *sc.Id,
 		IsOpen:            request.Body.IsOpen,
+		UserId:            &userId,
 	}
 	tx = s.Db.Create(&stationStatus)
 	if tx.Error != nil {

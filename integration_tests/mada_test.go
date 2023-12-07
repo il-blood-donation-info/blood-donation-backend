@@ -63,10 +63,10 @@ func teardown(db *gorm.DB) {
 		return
 	}
 	// Perform teardown tasks here
-	//err := db.Migrator().DropTable(&api.User{}, &api.Station{}, &api.StationStatus{}, &api.StationSchedule{})
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
+	err := db.Migrator().DropTable(&api.User{}, &api.Station{}, &api.StationStatus{}, &api.StationSchedule{})
+	if err != nil {
+		log.Fatal(err)
+	}
 	scraper.CloseDbConnection(db)
 }
 
@@ -143,8 +143,7 @@ func TestScrapeMada(t *testing.T) {
 		t.Fatal("no yesterday dates should be present in schedule")
 	}
 	todaySchedule := schedule.FilterByDate(today)
-	fmt.Println("todaySchedule", todaySchedule)
-	if len(todaySchedule) != 6 {
+	if len(todaySchedule) != 5 {
 		t.Fatal(fmt.Sprintf("today should have 5 schedule points, has: %d", len(todaySchedule)))
 	}
 
@@ -168,12 +167,10 @@ func TestScrapeMada(t *testing.T) {
 	}
 
 	// make a put call to station
-
 	updateRequest := api.UpdateStationRequestObject{
 		Id:   station.Id,
 		Body: &api.UpdateStationJSONRequestBody{IsOpen: false},
 	}
-	fmt.Println("station.id", station.Id)
 	_, err = srv.UpdateStation(context.TODO(), updateRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -187,11 +184,9 @@ func TestScrapeMada(t *testing.T) {
 
 	for _, sc := range todaySchedule {
 		if sc.StationName == "TestName" {
-			if sc.LastStatus == false {
+			if sc.LastStatus != false {
 				t.Fatal("TestName should be closed")
 			}
 		}
 	}
 }
-
-// check that schedule is updated
