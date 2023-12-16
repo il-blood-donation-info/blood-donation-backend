@@ -49,22 +49,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading swagger spec\n: %s", err)
 	}
-	swagger.Servers = nil
+	//swagger.Servers = nil
 
 	strictBloodInfoServer := server.NewStrictBloodInfoServer(db)
 
 	// We can add 2 kinds of middlewares:
 	// - "strict" middlewares here deal in per-request generated `api` types.
 	// - r.Use() chi middlewares below deal in de-facto standard `http.Handler`.
-	strictMiddlewares := []api.StrictMiddlewareFunc{}
+	var strictMiddlewares []api.StrictMiddlewareFunc
 	strictHandler := api.NewStrictHandler(strictBloodInfoServer, strictMiddlewares)
 
 	r := chi.NewRouter()
 	r.Use(cors.Default().Handler) // Tell browsers cross-origin requests OK from any domain.
 	r.Use(middleware.OapiRequestValidator(swagger))
-	api.HandlerFromMux(strictHandler, r)
+	h := api.HandlerFromMuxWithBaseURL(strictHandler, r, "/api")
 	s := &http.Server{
-		Handler: r,
+		Handler: h,
 		Addr:    net.JoinHostPort("0.0.0.0", "8443"),
 		TLSConfig: &tls.Config{
 			MinVersion: tls.VersionTLS13,
