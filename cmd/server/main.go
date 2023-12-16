@@ -49,7 +49,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading swagger spec\n: %s", err)
 	}
-	swagger.Servers = nil
+	//swagger.Servers = nil
 
 	strictBloodInfoServer := server.NewStrictBloodInfoServer(db)
 
